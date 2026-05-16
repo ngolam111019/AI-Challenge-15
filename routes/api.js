@@ -622,6 +622,16 @@ router.post('/preview/simulate', async (req, res) => {
         console.error('Simulate error:', err);
         res.status(500).send('<div class="p-8 bg-rose-50 text-rose-600 rounded-2xl font-bold border border-rose-200">Error executing simulation: ' + err.message + '</div>');
     }
+// POST /api/admin/reset-seed - Reset database to pristine sample tenants
+router.post('/admin/reset-seed', async (req, res) => {
+    try {
+        const seedScript = require('../seed');
+        await seedScript.seed(false);
+        res.json({ success: true, message: 'Database successfully reset to 3 pristine Sample Tenants!' });
+    } catch (err) {
+        console.error('Reset seed error:', err);
+        res.status(500).json({ error: 'Failed to reset sample tenants' });
+    }
 });
 
 module.exports = router;

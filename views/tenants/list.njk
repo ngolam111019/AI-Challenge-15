@@ -49,6 +49,32 @@
             const id1 = this.selected[0];
             const id2 = this.selected[1];
             window.location.href = `/tenants/diff?id1=${id1}&id2=${id2}`;
+        },
+        resetSampleTenants() {
+            Swal.fire({
+                title: 'Reset Sample Tenants?',
+                html: 'Wipe all test records and restore pristine <b>SafeGuard</b>, <b>HealthFirst</b>, and <b>GovHealth</b> sample configurations exactly matching the AI Challenge specification?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d97706',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, reset database!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch('/api/admin/reset-seed', { method: 'POST' });
+                        const data = await res.json();
+                        if (res.ok) {
+                            document.body.dispatchEvent(new Event('refreshTenants'));
+                            Toast.fire({ icon: 'success', title: data.message });
+                        } else {
+                            Toast.fire({ icon: 'error', title: data.error || 'Failed to reset' });
+                        }
+                    } catch (e) {
+                        Toast.fire({ icon: 'error', title: 'Network error' });
+                    }
+                }
+            });
         }
      }">
 
@@ -60,7 +86,13 @@
         </div>
         
         <!-- Action Buttons -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center flex-wrap gap-3">
+            <button @click="resetSampleTenants()" 
+                    class="px-4 py-2.5 bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 rounded-xl font-bold text-xs transition flex items-center space-x-1.5 shadow-2xs">
+                <span>🔄</span>
+                <span>Reset Demo Sample Tenants</span>
+            </button>
+
             <button @click="batchDelete()" 
                     :disabled="selected.length === 0" 
                     :class="selected.length === 0 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-rose-600 text-white border-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'"
