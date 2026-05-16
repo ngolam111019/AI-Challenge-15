@@ -11,6 +11,7 @@ Một nền tảng quản trị và thực thi cấu hình bảo hiểm đa khá
 > **🌟 ĐÁNH GIÁ & NGHIỆM THU (DÀNH CHO NHÀ TUYỂN DỤNG / TECH LEADS):**
 > - **🔗 Ứng dụng Trực tuyến (Live Demo):** [https://ai-challenge-15.onrender.com/](https://ai-challenge-15.onrender.com/)
 > - **📖 Hướng dẫn Đánh giá Chi tiết (Evaluation Walkthrough):** Xem file **[EVALUATION_GUIDE.md](./EVALUATION_GUIDE.md)** để rà soát và kiểm chứng trọn vẹn toàn bộ 8 tiêu chí nghiệm thu của đề bài chỉ trong chưa đầy 5 phút!
+> - **🧠 Bài test Tư duy Kỹ thuật & Giải quyết vấn đề (Logic & Problem Solving):** Xem file **[LOGIC_QUESTIONS_ANSWERS.md](./LOGIC_QUESTIONS_ANSWERS.md)** đính kèm để đọc toàn bộ lập luận chuyên sâu về 4 câu hỏi logic của ứng viên.
 
 ---
 
