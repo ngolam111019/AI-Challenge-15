@@ -1,0 +1,187 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="space-y-8" 
+     x-data="{
+        tenantId: '{{ selectedTenantId | default('') }}',
+        claimType: 'OUTPATIENT',
+        amount: 10000,
+        claimTypes: [
+            { id: 'OUTPATIENT', name: 'Outpatient' },
+            { id: 'INPATIENT', name: 'Inpatient' },
+            { id: 'DENTAL', name: 'Dental' }
+        ],
+        customFields: [],
+        customFieldValues: {},
+        branding: { companyName: 'Select a Tenant', primaryColor: '#2563eb' },
+        
+        async loadContext() {
+            if (!this.tenantId) return;
+            try {
+                const res = await fetch(`/api/tenants/${this.tenantId}/preview-context`);
+                if (res.ok) {
+                    const data = await res.json();
+                    this.claimTypes = data.claimTypes && data.claimTypes.length > 0 ? data.claimTypes : [
+                        { id: 'OUTPATIENT', name: 'Outpatient' },
+                        { id: 'INPATIENT', name: 'Inpatient' }
+                    ];
+                    if (!this.claimTypes.some(c => c.id === this.claimType)) {
+                        this.claimType = this.claimTypes[0].id;
+                    }
+                    this.customFields = data.customFields || [];
+                    this.customFields.forEach(f => {
+                        if (this.customFieldValues[f.id] === undefined) {
+                            this.customFieldValues[f.id] = '';
+                        }
+                    });
+                    this.branding = data.branding || { companyName: 'Corporate Tenant', primaryColor: '#2563eb' };
+                    this.runSimulation();
+                }
+            } catch (e) {
+                console.error('Failed to load context:', e);
+            }
+        },
+
+        runSimulation() {
+            if (!this.tenantId) return;
+            const payload = {
+                tenantId: this.tenantId,
+                claimType: this.claimType,
+                amount: Number(this.amount) || 0,
+                customFields: this.customFieldValues
+            };
+            htmx.ajax('POST', '/api/preview/simulate', {
+                values: payload,
+                target: '#pipeline-output'
+            });
+        }
+     }"
+     x-init="if (tenantId) setTimeout(() => loadContext(), 50)">
+
+    <!-- Top Banner -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white rounded-3xl p-8 shadow-sm border border-slate-200 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="/tenants" class="text-sm font-bold text-slate-500 hover:text-blue-600 transition">← All Tenants</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 uppercase tracking-wider">Simulation Sandbox</span>
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 mt-1">Real-Time Processing Simulation</h1>
+            <p class="text-sm text-slate-500 mt-1">Select a tenant and input sample claim data to visualize SLA deadlines, approval routing, and notifications live.</p>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <div class="px-4 py-2 bg-slate-100 rounded-xl text-xs font-bold text-slate-600 flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>Runtime Engine Active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Sandbox Grid (Split-Screen Form & Pipeline) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Column: Input Form (5 Cols) -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-8 shadow-sm border border-slate-200 space-y-6 self-start">
+            <div class="flex items-center space-x-2 pb-4 border-b border-slate-100">
+                <span class="text-xl">🎛️</span>
+                <h2 class="font-extrabold text-slate-900 text-lg">Simulation Input Parameters</h2>
+            </div>
+
+            <!-- Tenant Selector -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                    🏢 Target Insurance Tenant
+                </label>
+                <select x-model="tenantId" @change="loadContext()" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">-- Choose a tenant --</option>
+                    {% for t in tenants %}
+                    <option value="{{ t.id }}" {% if t.id == selectedTenantId %}selected{% endif %}>{{ t.name }} ({{ t.slug }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div x-show="tenantId" class="space-y-6" x-transition x-cloak>
+                <!-- Claim Type Selector -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                        🏥 Claim Treatment Type
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <template x-for="t in claimTypes" :key="t.id">
+                            <button @click="claimType = t.id; runSimulation()" 
+                                    :class="claimType === t.id ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium'"
+                                    class="px-4 py-3 rounded-xl text-sm transition flex items-center justify-center">
+                                <span x-text="t.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Claim Amount Slider & Input -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            💰 Total Claim Amount ($)
+                        </label>
+                        <span class="font-mono font-extrabold text-lg text-blue-600" x-text="`$` + Number(amount).toLocaleString()"></span>
+                    </div>
+                    <input type="range" x-model="amount" @input.debounce.150ms="runSimulation()" min="500" max="100000" step="500" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                    <div class="flex justify-between text-[10px] text-slate-400 font-mono mt-1 font-semibold">
+                        <span>$500</span>
+                        <span>$50,000</span>
+                        <span>$100,000</span>
+                    </div>
+                    <input type="number" x-model="amount" @input.debounce.300ms="runSimulation()" class="mt-3 w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter custom amount">
+                </div>
+
+                <!-- Dynamic Custom Metadata Fields Header -->
+                <div x-show="customFields.length > 0" class="pt-4 border-t border-slate-100 space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <span>🏷️</span>
+                        <h3 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Tenant Required Custom Metadata</h3>
+                    </div>
+                    
+                    <template x-for="field in customFields" :key="field.id">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1 flex justify-between items-center">
+                                <span x-text="field.label"></span>
+                                <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded" :class="field.required ? 'bg-rose-100 text-rose-800 font-bold' : 'bg-slate-100 text-slate-600'" x-text="field.required ? '* Required' : 'Optional'"></span>
+                            </label>
+                            <input type="text" x-model="customFieldValues[field.id]" @input.debounce.300ms="runSimulation()" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" :placeholder="`Enter ` + field.label">
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Empty State Prompt -->
+            <div x-show="!tenantId" class="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 font-medium text-sm">
+                Please select a target tenant from the dropdown above to reveal dynamic claim parameters.
+            </div>
+        </div>
+
+        <!-- Right Column: Visual Pipeline Output (7 Cols) -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="bg-slate-900 rounded-3xl p-8 shadow-xl text-white min-h-[500px] flex flex-col justify-between border border-slate-800">
+                <div>
+                    <div class="flex items-center justify-between pb-6 border-b border-slate-800 mb-6">
+                        <div class="flex items-center space-x-3">
+                            <span class="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50"></span>
+                            <h2 class="font-extrabold text-white text-lg tracking-wide uppercase">Visual Execution Pipeline</h2>
+                        </div>
+                        <span class="font-mono text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Simulated Runtime Output</span>
+                    </div>
+
+                    <!-- Pipeline Output Anchor -->
+                    <div id="pipeline-output" class="transition-all duration-300">
+                        <div class="py-24 text-center text-slate-500 space-y-3">
+                            <span class="text-5xl block opacity-40 animate-bounce">⚡</span>
+                            <p class="text-sm font-medium">Pipeline standby. Select a tenant and configure inputs on the left to simulate claim execution.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -367,4 +367,149 @@ router.post('/tenants/:id/rollback', async (req, res) => {
     }
 });
 
+// GET /api/tenants/:id/preview-context - Load dynamic schema for simulation form
+router.get('/tenants/:id/preview-context', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const configRow = await configService.getLatestConfig(id);
+        if (!configRow) return res.status(404).json({ error: 'Config not found' });
+        
+        const config = configRow.config_data;
+        const claimTypes = config.claimTypes ? config.claimTypes.filter(c => c.enabled) : [];
+        const customFields = config.customFields?.text ? config.customFields.text.filter(f => f.enabled) : [];
+        const branding = config.branding || { companyName: '', primaryColor: '#2563eb' };
+        
+        res.json({ claimTypes, customFields, branding });
+    } catch (e) {
+        console.error('Context error:', e);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// POST /api/preview/simulate - Execute runtime engine and return visual pipeline HTML
+router.post('/preview/simulate', async (req, res) => {
+    try {
+        const { tenantId, claimType, amount, customFields } = req.body;
+        if (!tenantId || !claimType) {
+            return res.send('<div class="p-12 text-center text-slate-400 font-medium">Please select a tenant and claim type on the left to begin real-time pipeline execution.</div>');
+        }
+
+        const runtimeService = require('../services/runtimeService');
+        const result = await runtimeService.processClaim(tenantId, { 
+            claimType, 
+            amount: Number(amount) || 0, 
+            customFields 
+        });
+
+        const color = result.primaryColor;
+        const amtStr = `$${Number(result.amount).toLocaleString()}`;
+        
+        let docsHtml = result.requiredDocuments.map(d => `<span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">📄 ${d}</span>`).join(' ') || '<span class="text-xs text-slate-400 italic">No specific documents required</span>';
+        
+        let notifHtml = result.notifications.map(n => `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700">
+                <span class="flex items-center space-x-2"><span>📢 Event: ${n.event}</span></span>
+                <span class="font-mono bg-white px-2 py-0.5 rounded border border-slate-200">Channels: ${(n.channels||[]).join(', ')}</span>
+            </div>`).join('') || '<span class="text-xs text-slate-400 italic">No notifications configured</span>';
+
+        let fieldsHtml = result.customFieldValidation.map(f => `
+            <div class="flex items-center justify-between p-3 rounded-xl ${f.isValid ? 'bg-emerald-50/50 border border-emerald-200/80 text-emerald-900' : 'bg-rose-50 border-2 border-rose-400 text-rose-900 font-bold'} text-xs">
+                <div>
+                    <span class="font-semibold">${f.label}</span>
+                    <span class="text-[10px] uppercase font-mono ml-2 px-1.5 py-0.5 rounded ${f.required ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}">${f.required ? 'Required' : 'Optional'}</span>
+                </div>
+                <div>
+                    ${f.isValid ? `<span class="font-mono bg-white px-2 py-0.5 rounded shadow-2xs">${f.submittedValue || '(Empty)'}</span> ✅` : '<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">⚠️ Missing Required Field</span>'}
+                </div>
+            </div>`).join('') || '<span class="text-xs text-slate-400 italic">No custom fields configured for this tenant</span>';
+
+        let html = `
+        <div class="space-y-6">
+            <!-- Execution Banner -->
+            <div class="p-6 rounded-2xl text-white shadow-xl flex items-center justify-between" style="background-color: ${color}">
+                <div>
+                    <span class="text-[10px] font-mono tracking-wider uppercase opacity-80">Execution Pipeline Target</span>
+                    <h2 class="text-2xl font-extrabold mt-0.5">${result.tenantName}</h2>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-semibold opacity-90 block">Simulated Claim</span>
+                    <span class="text-xl font-extrabold font-mono">${amtStr} (${result.claimType})</span>
+                </div>
+            </div>
+
+            <!-- Custom Field Errors Alert (if any) -->
+            ${result.hasCustomFieldErrors ? `
+            <div class="p-4 rounded-xl bg-rose-500 text-white font-bold text-sm shadow-lg flex items-center space-x-3 animate-pulse">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <div class="text-base uppercase tracking-wide">Validation Error: Required Metadata Missing</div>
+                    <div class="text-xs font-normal opacity-90">The claim cannot proceed to approval routing until all mandatory custom fields are populated.</div>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Pipeline Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Approval Matrix Routing -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                    <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <span>🛡️ Approval Routing Tier</span>
+                    </div>
+                    <div class="p-4 rounded-xl ${result.approvalRouting.isAutoApprove ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold' : 'bg-purple-50 text-purple-800 border border-purple-200 font-bold'} flex items-center justify-between text-base">
+                        <span>${result.approvalRouting.tier}</span>
+                        <span class="text-2xl">${result.approvalRouting.isAutoApprove ? '⚡' : '👥'}</span>
+                    </div>
+                </div>
+
+                <!-- SLA Tracker -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                    <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <span>⏳ Expected SLA Resolution</span>
+                    </div>
+                    <div class="p-4 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex flex-col justify-center">
+                        <span class="text-xs font-semibold">Target: ${result.slaTargetDays} working days</span>
+                        <span class="text-lg font-extrabold font-mono mt-0.5">${result.slaDeadline}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Required Documentation -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <span>📑 Mandatory Verification Documents</span>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-1">
+                    ${docsHtml}
+                </div>
+            </div>
+
+            <!-- Notifications Workflow -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <span>🔔 Outbound Notification Channels</span>
+                </div>
+                <div class="space-y-2 pt-1">
+                    ${notifHtml}
+                </div>
+            </div>
+
+            <!-- Custom Metadata Fields Verification -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <span>🏷️ Tenant-Specific Custom Metadata Validation</span>
+                </div>
+                <div class="space-y-2 pt-1">
+                    ${fieldsHtml}
+                </div>
+            </div>
+        </div>
+        `;
+
+        res.send(html);
+    } catch (err) {
+        console.error('Simulate error:', err);
+        res.status(500).send('<div class="p-8 bg-rose-50 text-rose-600 rounded-2xl font-bold border border-rose-200">Error executing simulation: ' + err.message + '</div>');
+    }
+});
+
 module.exports = router;

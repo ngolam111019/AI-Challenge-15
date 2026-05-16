@@ -53,7 +53,12 @@ router.get('/diff', async (req, res) => {
 // GET /tenants/preview - Preview / Simulation sandbox screen
 router.get('/preview', async (req, res) => {
     const { tenantId } = req.query;
-    res.render('tenants/preview', { title: 'Simulation Sandbox', selectedTenantId: tenantId });
+    try {
+        const tenantsRes = await db.query('SELECT id, name, slug FROM tenants ORDER BY name');
+        res.render('tenants/preview', { title: 'Simulation Sandbox', selectedTenantId: tenantId, tenants: tenantsRes.rows });
+    } catch (e) {
+        res.status(500).send('Error loading preview');
+    }
 });
 
 // GET /tenants/:id/history - Config history screen
