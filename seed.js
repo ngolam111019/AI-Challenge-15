@@ -17,7 +17,7 @@ async function createTenant(slug, name, config, note = 'Initial configuration') 
     return tenantId;
 }
 
-async function seed() {
+async function seed(isCLI = true) {
     try {
         console.log('Cleaning existing data...');
         await db.query('TRUNCATE tenants, tenant_configs, claims RESTART IDENTITY CASCADE');
@@ -155,11 +155,15 @@ async function seed() {
         await createTenant('govhealth', 'GovHealth', tenantCConfig);
 
         console.log('Seeding completed successfully.');
-        process.exit(0);
+        if (isCLI) process.exit(0);
     } catch (err) {
         console.error(err);
-        process.exit(1);
+        if (isCLI) process.exit(1);
     }
 }
 
-seed();
+if (require.main === module) {
+    seed(true);
+}
+
+module.exports = { seed, createTenant };
