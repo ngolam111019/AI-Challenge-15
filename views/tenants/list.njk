@@ -1,0 +1,118 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="space-y-8" 
+     x-data="{ 
+        selected: [], 
+        selectAll: false,
+        toggleAll() {
+            if (this.selectAll) {
+                this.selected = Array.from(document.querySelectorAll('tbody input[type=checkbox]')).map(el => el.value);
+            } else {
+                this.selected = [];
+            }
+        },
+        batchDelete() {
+            if (this.selected.length === 0) return;
+            Swal.fire({
+                title: 'Delete Selected Tenants?',
+                text: `You are about to delete ${this.selected.length} tenants. This will wipe their configs and cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete batch!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch('/api/tenants/batch', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ids: this.selected })
+                        });
+                        if (res.ok) {
+                            this.selected = [];
+                            this.selectAll = false;
+                            document.body.dispatchEvent(new Event('refreshTenants'));
+                            Toast.fire({ icon: 'success', title: 'Batch delete completed successfully!' });
+                        } else {
+                            Toast.fire({ icon: 'error', title: 'Error deleting tenants' });
+                        }
+                    } catch (e) {
+                        Toast.fire({ icon: 'error', title: 'Network error' });
+                    }
+                }
+            });
+        },
+        batchCompare() {
+            if (this.selected.length < 1) return;
+            const id1 = this.selected[0];
+            const id2 = this.selected.length > 1 ? this.selected[1] : this.selected[0];
+            window.location.href = `/tenants/diff?id1=${id1}&id2=${id2}`;
+        }
+     }">
+
+    <!-- Page Header & Action Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Tenants Management</h1>
+            <p class="text-sm text-slate-500 mt-1">Manage active corporate insurance clients, their unique slugs, and configuration snapshots.</p>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3">
+            <button @click="batchDelete()" 
+                    :disabled="selected.length === 0" 
+                    :class="selected.length === 0 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-rose-600 text-white border-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20'"
+                    class="px-4 py-2.5 rounded-xl font-medium text-sm transition border flex items-center space-x-2">
+                <span>🗑️</span>
+                <span>Delete Selected (<span x-text="selected.length">0</span>)</span>
+            </button>
+
+            <button @click="batchCompare()" 
+                    :disabled="selected.length < 1" 
+                    :class="selected.length < 1 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700 shadow-md shadow-purple-600/20'"
+                    class="px-4 py-2.5 rounded-xl font-medium text-sm transition border flex items-center space-x-2">
+                <span>⚖️</span>
+                <span>Compare (<span x-text="selected.length">0</span>)</span>
+            </button>
+
+            <a href="/tenants/new" class="px-5 py-2.5 bg-blue-600 rounded-xl font-medium text-sm text-white hover:bg-blue-500 transition shadow-lg shadow-blue-500/30 flex items-center space-x-2">
+                <span>+ New Tenant</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Data Grid -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered Tenants List</span>
+            <span class="text-xs text-slate-400 font-medium">Select checkbox on left to enable batch actions</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="w-12 px-6 py-4">
+                            <input type="checkbox" x-model="selectAll" @change="toggleAll()" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                        </th>
+                        <th class="px-6 py-4">STT</th>
+                        <th class="px-6 py-4">Tenant Slug</th>
+                        <th class="px-6 py-4">Company Name</th>
+                        <th class="px-6 py-4">Created Date</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tenant-list-container" 
+                       hx-get="/api/tenants" 
+                       hx-trigger="load, refreshTenants from:body" 
+                       class="divide-y divide-slate-100">
+                    <tr>
+                        <td colspan="6" class="p-12 text-center text-slate-400 italic">Fetching tenants...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

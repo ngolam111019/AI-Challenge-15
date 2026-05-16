@@ -1,0 +1,90 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Banner -->
+    <header class="flex flex-col md:flex-row md:justify-between md:items-center bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 text-white shadow-xl shadow-slate-900/10">
+        <div>
+            <span class="bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-blue-500/30 inline-block mb-3">
+                Core Engine Active
+            </span>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Admin Control Center</h1>
+            <p class="mt-2 text-slate-400 max-w-xl text-sm md:text-base">
+                Manage multi-tenant insurance parameters, approval matrices, SLAs, and notification hooks instantly.
+            </p>
+        </div>
+        <div class="mt-6 md:mt-0 flex gap-3">
+            <a href="/tenants/preview" class="px-5 py-3 bg-slate-800 border border-slate-700 rounded-xl font-medium text-sm text-slate-200 hover:bg-slate-700 hover:text-white transition shadow-sm inline-flex items-center space-x-2">
+                <span>👁️ Sandbox Simulator</span>
+            </a>
+            <a href="/tenants/new" class="px-5 py-3 bg-blue-600 rounded-xl font-medium text-sm text-white hover:bg-blue-500 transition shadow-lg shadow-blue-500/30 inline-flex items-center space-x-2">
+                <span>+ Create New Tenant</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- KPI Summary Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 bg-white flex items-center justify-between">
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Tenants</h3>
+                <p class="text-3xl font-extrabold text-slate-900 mt-2">{{ tenantCount }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl">
+                🏢
+            </div>
+        </div>
+        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 bg-white flex items-center justify-between">
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Simulated Claims</h3>
+                <p class="text-3xl font-extrabold text-slate-900 mt-2">{{ claimCount }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl">
+                📄
+            </div>
+        </div>
+        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200 bg-white flex items-center justify-between">
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Engine SLA Health</h3>
+                <p class="text-3xl font-extrabold text-emerald-600 mt-2">100%</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-2xl">
+                🛡️
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tenants Section -->
+    <section class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <div>
+                <h2 class="font-bold text-lg text-slate-800">Active Tenant Configurations</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Showing registered tenants and active configuration snapshots</p>
+            </div>
+            <a href="/tenants" class="text-sm font-semibold text-blue-600 hover:text-blue-700 transition flex items-center space-x-1">
+                <span>Manage All Tenants</span>
+                <span>→</span>
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="w-12 px-6 py-4"></th>
+                        <th class="px-6 py-4">#</th>
+                        <th class="px-6 py-4">Tenant Slug</th>
+                        <th class="px-6 py-4">Company Name</th>
+                        <th class="px-6 py-4">Created Date</th>
+                        <th class="px-6 py-4 text-right">Quick Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-tenant-list" hx-get="/api/tenants" hx-trigger="load, refreshTenants from:body" class="divide-y divide-slate-100">
+                    <tr>
+                        <td colspan="6" class="p-12 text-center text-slate-400">Loading active tenants...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
