@@ -48,6 +48,7 @@ Khi người dùng bấm nút thực thi, hệ thống sẽ kiểm tra nghiêm n
 
 ## 3. Luồng Kết quả Thực thi (Visual Execution Pipeline)
 Sau khi toàn bộ dữ liệu đầu vào vượt qua kiểm tra hợp lệ, hệ thống truyền tải dữ liệu đến `RuntimeEngine` (`/api/preview/simulate`) và hiển thị kết quả trực quan ở bảng bên phải (Right Panel):
+- **Chuẩn hóa Giao thức Truyền tải (JSON Serialization)**: Luồng thực thi sử dụng `fetch` với định dạng `application/json` để đảm bảo các đối tượng siêu dữ liệu lồng nhau (như `customFields`) được truyền chính xác tới Backend mà không bị lỗi ép kiểu sang `[object Object]`.
 - **Bảng tên & Hạn mức (Execution Banner)**: Hiển thị tên Tenant, loại hình và số tiền đang chạy thử nghiệm.
 - **Kiểm tra Ngưỡng Phê duyệt (Approval Matrix Routing)**: Tự động tính toán luồng duyệt là `Auto-Approve ⚡` hay cần qua các cấp `assessor`, `team_lead`, `director`.
 - **Dự kiến Hạn chót xử lý (Expected SLA Resolution)**: Tự động tính toán ngày hạn chót dựa theo quy tắc SLA và hiển thị lộ trình leo thang (Escalations).
