@@ -42,9 +42,13 @@ Hệ thống phân biệt trạng thái dựa trên URL và tham số ID truyề
 ```
 
 ## 3. Luồng Lưu Dữ liệu (Save & Commit Flow)
-1. **Change Note (Ghi chú thay đổi)**: Màn hình chỉnh sửa luôn có một ô nhập *Change Note* (Bắt buộc hoặc khuyến nghị). Người dùng ghi lại lý do sửa (ví dụ: *"Điều chỉnh SLA cho Inpatient theo hợp đồng mới"*).
-2. **Commit via HTMX**:
-   - Khi bấm Save, toàn bộ dữ liệu từ các form module được tổng hợp thành một object JSON duy nhất.
-   - Gọi API `PUT /api/tenants/1`.
+1. **Popup Change Note (Ghi chú thay đổi)**: Ở chế độ chỉnh sửa, khi bấm Save, hệ thống tự động hiển thị một hộp thoại thông minh (SweetAlert2 Modal) yêu cầu nhập *Commit Change Note* (Ví dụ: *"Điều chỉnh SLA cho Inpatient theo hợp đồng mới"*).
+2. **Commit via HTMX / Fetch API**:
+   - Khi bấm xác nhận trên popup, toàn bộ dữ liệu từ các form module được tổng hợp thành một object JSON duy nhất kèm `changeNote`.
+   - Gọi API `PUT /api/tenants/:id`.
    - Backend `configService.createNewVersion()` tạo bản ghi mới trong `tenant_configs` và cập nhật con trỏ `current_version_id`.
 3. **Phản hồi Thành công**: Hiển thị Toast thông báo màu xanh và cập nhật số phiên bản trên tiêu đề mà không cần tải lại toàn trang.
+
+## 4. Quản trị Đa Kênh (Notification Radio Groups)
+- Mỗi sự kiện trong cấu hình thông báo (`claim_submitted`, `approved`, `rejected`, `payment_sent`) sử dụng thuộc tính `:name` động (Ví dụ: `:name="'email_type_' + evt.event"`) để bảo đảm các nhóm lựa chọn radio hoạt động hoàn toàn độc lập, không bị xung đột giữa các sự kiện.
+- Toàn bộ kênh thông báo luôn được khởi tạo với trạng thái mặc định là **Default System Template**.

@@ -28,40 +28,35 @@
             if (!this.config.notifications.events || !Array.isArray(this.config.notifications.events)) {
                 this.config.notifications.events = [];
             }
-            defaultEvents.forEach(ev => {
-                let existing = this.config.notifications.events.find(e => e.event === ev);
-                if (!existing) {
-                    existing = { 
-                        event: ev, 
-                        channels: ['email'], 
-                        channelConfigs: {
-                            email: { templateType: 'default', customTemplateId: '' },
-                            sms: { templateType: 'default', customTemplateId: '' },
-                            webhook: { templateType: 'default', customTemplateId: '' }
-                        }
-                    };
-                    this.config.notifications.events.push(existing);
-                }
-                if (!existing.channels || !Array.isArray(existing.channels)) {
-                    existing.channels = ['email'];
-                }
-                if (!existing.channelConfigs || typeof existing.channelConfigs !== 'object') {
-                    existing.channelConfigs = {
-                        email: { templateType: 'default', customTemplateId: existing.template || '' },
-                        sms: { templateType: 'default', customTemplateId: '' },
-                        webhook: { templateType: 'default', customTemplateId: '' }
-                    };
-                } else {
-                    ['email', 'sms', 'webhook'].forEach(ch => {
-                        if (!existing.channelConfigs[ch] || typeof existing.channelConfigs[ch] !== 'object') {
-                            existing.channelConfigs[ch] = { templateType: 'default', customTemplateId: '' };
-                        } else if (!existing.channelConfigs[ch].templateType) {
-                            existing.channelConfigs[ch].templateType = 'default';
-                            existing.channelConfigs[ch].customTemplateId = '';
-                        }
-                    });
-                }
+
+            const updatedEvents = defaultEvents.map(ev => {
+                let existing = this.config.notifications.events.find(e => e.event === ev) || {};
+                let channels = Array.isArray(existing.channels) ? [...existing.channels] : ['email'];
+                let oldCfg = existing.channelConfigs || {};
+
+                let emailCfg = (oldCfg.email && typeof oldCfg.email === 'object' && oldCfg.email.templateType) 
+                    ? { ...oldCfg.email } 
+                    : { templateType: 'default', customTemplateId: existing.template || '' };
+
+                let smsCfg = (oldCfg.sms && typeof oldCfg.sms === 'object' && oldCfg.sms.templateType) 
+                    ? { ...oldCfg.sms } 
+                    : { templateType: 'default', customTemplateId: '' };
+
+                let webhookCfg = (oldCfg.webhook && typeof oldCfg.webhook === 'object' && oldCfg.webhook.templateType) 
+                    ? { ...oldCfg.webhook } 
+                    : { templateType: 'default', customTemplateId: '' };
+
+                return {
+                    event: ev,
+                    channels: channels,
+                    channelConfigs: {
+                        email: emailCfg,
+                        sms: smsCfg,
+                        webhook: webhookCfg
+                    }
+                };
             });
+            this.config.notifications.events = updatedEvents;
 
             if (!this.config.sla || typeof this.config.sla !== 'object') this.config.sla = {};
             if (!this.config.sla.workingDays || !Array.isArray(this.config.sla.workingDays)) {
@@ -71,12 +66,16 @@
                 this.config.sla.claimTypeSla = {};
             }
             if (this.config.claimTypes && Array.isArray(this.config.claimTypes)) {
+                const updatedSla = { ...this.config.sla.claimTypeSla };
                 this.config.claimTypes.forEach(ct => {
-                    if (!this.config.sla.claimTypeSla[ct.id] || typeof this.config.sla.claimTypeSla[ct.id] !== 'object') {
-                        let oldVal = this.config.sla.claimTypeSla[ct.id];
-                        this.config.sla.claimTypeSla[ct.id] = { targetDays: typeof oldVal === 'number' ? oldVal : 5, escalations: [] };
+                    let oldVal = updatedSla[ct.id];
+                    if (!oldVal || typeof oldVal !== 'object') {
+                        updatedSla[ct.id] = { targetDays: typeof oldVal === 'number' ? oldVal : 5, escalations: [] };
+                    } else {
+                        updatedSla[ct.id] = { ...oldVal, escalations: Array.isArray(oldVal.escalations) ? [...oldVal.escalations] : [] };
                     }
                 });
+                this.config.sla.claimTypeSla = updatedSla;
             }
         },
 
