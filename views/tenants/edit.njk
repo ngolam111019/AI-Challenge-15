@@ -19,6 +19,67 @@
             }
         },
 
+        initConfig() {
+            const defaultEvents = ['claim_submitted', 'approved', 'rejected', 'payment_sent'];
+            if (!this.config || typeof this.config !== 'object') this.config = {};
+            if (!this.config.notifications || typeof this.config.notifications !== 'object') {
+                this.config.notifications = { events: [] };
+            }
+            if (!this.config.notifications.events || !Array.isArray(this.config.notifications.events)) {
+                this.config.notifications.events = [];
+            }
+            defaultEvents.forEach(ev => {
+                let existing = this.config.notifications.events.find(e => e.event === ev);
+                if (!existing) {
+                    existing = { 
+                        event: ev, 
+                        channels: ['email'], 
+                        channelConfigs: {
+                            email: { templateType: 'default', customTemplateId: '' },
+                            sms: { templateType: 'default', customTemplateId: '' },
+                            webhook: { templateType: 'default', customTemplateId: '' }
+                        }
+                    };
+                    this.config.notifications.events.push(existing);
+                }
+                if (!existing.channels || !Array.isArray(existing.channels)) {
+                    existing.channels = ['email'];
+                }
+                if (!existing.channelConfigs || typeof existing.channelConfigs !== 'object') {
+                    existing.channelConfigs = {
+                        email: { templateType: 'default', customTemplateId: existing.template || '' },
+                        sms: { templateType: 'default', customTemplateId: '' },
+                        webhook: { templateType: 'default', customTemplateId: '' }
+                    };
+                } else {
+                    ['email', 'sms', 'webhook'].forEach(ch => {
+                        if (!existing.channelConfigs[ch] || typeof existing.channelConfigs[ch] !== 'object') {
+                            existing.channelConfigs[ch] = { templateType: 'default', customTemplateId: '' };
+                        } else if (!existing.channelConfigs[ch].templateType) {
+                            existing.channelConfigs[ch].templateType = 'default';
+                            existing.channelConfigs[ch].customTemplateId = '';
+                        }
+                    });
+                }
+            });
+
+            if (!this.config.sla || typeof this.config.sla !== 'object') this.config.sla = {};
+            if (!this.config.sla.workingDays || !Array.isArray(this.config.sla.workingDays)) {
+                this.config.sla.workingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            }
+            if (!this.config.sla.claimTypeSla || typeof this.config.sla.claimTypeSla !== 'object') {
+                this.config.sla.claimTypeSla = {};
+            }
+            if (this.config.claimTypes && Array.isArray(this.config.claimTypes)) {
+                this.config.claimTypes.forEach(ct => {
+                    if (!this.config.sla.claimTypeSla[ct.id] || typeof this.config.sla.claimTypeSla[ct.id] !== 'object') {
+                        let oldVal = this.config.sla.claimTypeSla[ct.id];
+                        this.config.sla.claimTypeSla[ct.id] = { targetDays: typeof oldVal === 'number' ? oldVal : 5, escalations: [] };
+                    }
+                });
+            }
+        },
+
         async saveConfig() {
             if (!this.name || this.name.trim() === '') {
                 Toast.fire({ icon: 'error', title: 'Company Name is required' });
@@ -30,24 +91,28 @@
                 this.activeTab = 'general';
                 return;
             }
-            if (this.mode === 'edit' && (!this.changeNote || this.changeNote.trim() === '')) {
-                Toast.fire({ icon: 'error', title: 'Vui lòng nhập lý do thay đổi (Change Note is required)' });
-                this.activeTab = 'general';
-                return;
-            }
 
-            // Validation SLA (TC2.4)
-            if (this.config.sla.defaultTargetDays < 0) {
-                Toast.fire({ icon: 'error', title: 'SLA phải lớn hơn 0' });
-                this.activeTab = 'sla';
-                return;
-            }
-            for (const key in this.config.sla.claimTypeSla) {
-                if (this.config.sla.claimTypeSla[key] < 0) {
-                    Toast.fire({ icon: 'error', title: `SLA cho ${key} phải lớn hơn 0` });
-                    this.activeTab = 'sla';
-                    return;
-                }
+            if (this.mode === 'create') {
+                this.changeNote = 'Initial configuration setup';
+            } else {
+                const { value: note, isConfirmed } = await Swal.fire({
+                    title: 'Configuration Commit Note',
+                    text: 'Please describe the changes you made to this tenant configuration version:',
+                    input: 'textarea',
+                    inputPlaceholder: 'e.g., Updated outpatient SLA to 7 days and enabled email notifications',
+                    showCancelButton: true,
+                    confirmButtonText: 'Save Version v' + (Number(this.versionNumber) + 1),
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#64748b',
+                    inputValidator: (value) => {
+                        if (!value || value.trim() === '') {
+                            return 'Vui lòng nhập lý do thay đổi (Change Note is required)';
+                        }
+                    }
+                });
+
+                if (!isConfirmed) return;
+                this.changeNote = note.trim();
             }
 
             this.isSubmitting = true;
@@ -84,7 +149,8 @@
                 this.isSubmitting = false;
             }
         }
-     }">
+     }"
+     x-init="initConfig()">
 
     <!-- Top Navigation Bar / Banner -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white rounded-3xl p-8 shadow-sm border border-slate-200 gap-4">

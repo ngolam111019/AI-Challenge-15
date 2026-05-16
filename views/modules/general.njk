@@ -23,15 +23,5 @@
             </div>
             <p class="text-xs text-slate-400 mt-1" x-text="mode === 'create' ? 'Auto-generated from name. Used in API paths /api/v1/claims/:slug' : 'Slugs cannot be modified after creation to prevent API transaction breaks.'"></p>
         </div>
-
-        <div x-show="mode === 'edit'" class="pt-4 border-t border-slate-100">
-            <label class="block text-sm font-bold text-amber-700 mb-1 flex items-center space-x-1">
-                <span>📝 Change Note / Commit Message</span>
-                <span class="text-rose-500">*</span>
-            </label>
-            <textarea x-model="changeNote" rows="3" placeholder="Explain what changes you are making in this version (e.g. 'Updated SLA for inpatient claims to 10 days')"
-                      class="w-full px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50/30 focus:ring-2 focus:ring-amber-500 focus:outline-none transition text-sm font-medium placeholder-amber-300 text-amber-900"></textarea>
-            <p class="text-xs text-amber-600 mt-1">Mandatory. This will be logged in the immutable configuration history.</p>
-        </div>
     </div>
 </div>
