@@ -62,17 +62,17 @@ Hệ thống tài liệu được tổ chức chặt chẽ theo chuẩn kỹ sư
 
 ## 🚀 Hướng dẫn Triển khai & Kiểm chứng (Quick Start & Demonstration)
 
-### 1. Khởi chạy Môi trường Phát triển (Local Setup)
-Yêu cầu hệ thống: Node.js v18+ và Docker.
+### 1. Khởi chạy trên Máy cá nhân kết nối Cloud DB (Zero Docker Setup)
+Để nhà tuyển dụng dễ dàng chạy thử nghiệm trên máy local mà không cần cài đặt Docker hay cấu hình PostgreSQL phức tạp, chúng tôi đã mở sẵn đường truyền trực tiếp tới Neon Cloud DB:
+
 ```bash
-# Cài đặt các gói phụ thuộc
+# Clone kho lưu trữ và cài đặt thư viện
+git clone https://github.com/ngolam111019/AI-Challenge-15.git
+cd "AI Challenge 15"
 npm install
 
-# Khởi chạy PostgreSQL database qua Docker Compose
-docker-compose up -d
-
-# Khởi tạo bảng và nạp dữ liệu mẫu (SafeGuard, HealthFirst, GovHealth)
-node seed.js
+# Tạo file .env chứa chuỗi kết nối Cloud Database trực tiếp
+echo "DATABASE_URL=postgresql://neondb_owner:npg_be9Jl7UvQsPk@ep-rapid-dust-aolx22mg.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require" > .env
 ```
 
 ### 2. 🎯 Chạy Kịch bản Kiểm chứng API Runtime Lõi (Demonstration Scenario)

@@ -76,15 +76,34 @@ Quý vị có thể kiểm chứng trọn vẹn 8 tiêu chí nghiệm thu khắt
 
 ---
 
-## 🛠️ 3. Kiểm định API Runtime Lõi qua Terminal (Dành cho Kỹ sư Hệ thống)
+## 🛠️ 3. Kiểm định trên Máy Local (Local Clone & Terminal Verification)
 
-Nếu quý vị muốn rà soát trực tiếp hàm lõi `processClaim(tenantId, claimData)` dưới góc độ mã nguồn backend:
-1. Mở terminal tại thư mục gốc của dự án.
-2. Chạy kịch bản tự động:
-   ```bash
-   node demo_runtime.js
-   ```
-Hệ thống sẽ chạy kịch bản gửi 3 hồ sơ giống hệt nhau vào 3 Tenant và xuất ra chuỗi JSON định dạng chuẩn xác minh chứng độ ổn định và chính xác của thuật toán lõi.
+Nếu quý vị muốn rà soát trực tiếp mã nguồn hoặc chạy thử trên máy cá nhân (Localhost) mà không cần cài đặt Docker hay cấu hình Database phức tạp, chúng tôi đã chuẩn bị sẵn đường truyền kết nối Cloud trực tiếp:
+
+### Bước 1: Clone kho lưu trữ và cài đặt thư viện
+```bash
+git clone https://github.com/ngolam111019/AI-Challenge-15.git
+cd "AI Challenge 15"
+npm install
+```
+
+### Bước 2: Cấu hình Cơ sở dữ liệu Cloud trực tiếp (Zero Setup)
+Tạo một file `.env` tại thư mục gốc và dán chuỗi kết nối trực tiếp đến cơ sở dữ liệu Neon Cloud của hệ thống:
+```env
+DATABASE_URL=postgresql://neondb_owner:npg_be9Jl7UvQsPk@ep-rapid-dust-aolx22mg.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+```
+
+### Bước 3: Chạy Kịch bản Nghiệm thu API Runtime Lõi
+```bash
+node demo_runtime.js
+```
+Hệ thống sẽ kết nối trực tiếp lên Cloud, mô phỏng gửi 3 hồ sơ vào SafeGuard, HealthFirst, GovHealth và in ra chuỗi JSON đặc tả trọn vẹn 5 thông số đầu ra.
+
+### Bước 4: Khởi chạy Giao diện Web Quản trị
+```bash
+npm run dev
+```
+Truy cập trình duyệt tại địa chỉ: `http://localhost:3000/tenants`
 
 ---
 **Trân trọng cảm ơn Quý vị đã dành thời gian xem xét và đánh giá giải pháp!**
