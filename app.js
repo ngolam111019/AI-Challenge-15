@@ -28,19 +28,8 @@ app.set('view engine', 'njk');
 app.use('/api', require('./routes/api'));
 app.use('/tenants', require('./routes/tenants'));
 
-app.get('/', async (req, res) => {
-    try {
-        const dbHelper = require('./db');
-        const countRes = await dbHelper.query('SELECT COUNT(*) FROM tenants');
-        const claimsRes = await dbHelper.query('SELECT COUNT(*) FROM claims');
-        res.render('index', { 
-            title: 'CoreInsurance Dashboard',
-            tenantCount: countRes.rows[0].count,
-            claimCount: claimsRes.rows[0].count
-        });
-    } catch (e) {
-        res.render('index', { title: 'CoreInsurance Dashboard', tenantCount: 0, claimCount: 0 });
-    }
+app.get('/', (req, res) => {
+    res.redirect('/tenants');
 });
 
 // Start Server

@@ -19,16 +19,10 @@ Màn hình **Config History** cung cấp cái nhìn toàn cảnh về quá trìn
 Màn hình tải dữ liệu dựa trên tham số ID của Tenant được truyền vào (ví dụ: `/tenants/1/history`). Lưới dữ liệu sắp xếp theo thứ tự thời gian giảm dần (Mới nhất ở trên cùng):
 - **Version Badge**: Số phiên bản. Phiên bản đang hoạt động sẽ có nhãn `(Current ⭐)` nổi bật với nền màu xanh lục.
 - **Ngày thực hiện (Date)**: Ngày giờ chính xác lưu cấu hình.
-- **Tác giả (Author)**: Tên định danh hoặc email của người thực hiện thay đổi.
 - **Ghi chú (Change Note)**: Nội dung mô tả lý do thay đổi. Nếu là phiên bản tạo ra do khôi phục, hệ thống tự động ghi: `Rollback from version vX`.
-- **Cột Hành động (Actions)**: Nút xem chi tiết và nút khôi phục.
+- **Cột Hành động (Actions)**: Nút khôi phục (`🔄 Rollback`) (chỉ hiển thị cho các phiên bản cũ, phiên bản hiện tại hiển thị nhãn `Active`).
 
-## 2. Modal Xem Chi Tiết (View Details Modal / Drawer)
-Khi nhấn vào nút **`👁️ Details`** của bất kỳ dòng nào:
-- Hệ thống mở một Modal hoặc ngăn kéo trượt từ bên phải (Right Drawer) chứa nội dung JSON hoặc bảng trực quan mô tả cấu hình tại đúng thời điểm của phiên bản đó.
-- Nút tiện ích trong Modal: **`So sánh với bản Hiện tại`** (So sánh nhanh version này với version đang Active).
-
-## 3. Cơ Chế Khôi Phục & Xác Nhận (Rollback & Confirmation)
+## 2. Cơ Chế Khôi Phục & Xác Nhận (Rollback & Confirmation)
 
 Khi người dùng nhấn vào nút **`🔄 Rollback`** tại dòng của phiên bản cũ (ví dụ: `v1`):
 
