@@ -1,0 +1,190 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="space-y-8" 
+     x-data="{
+        mode: '{{ mode }}',
+        tenantId: '{{ tenant.id | default('') }}',
+        name: {{ JSON.stringify(tenant.name | default('')) }},
+        slug: {{ JSON.stringify(tenant.slug | default('')) }},
+        changeNote: '',
+        versionNumber: {{ versionNumber }},
+        activeTab: 'general',
+        config: {{ JSON.stringify(config) }},
+        isSubmitting: false,
+        
+        generateSlug() {
+            if (this.mode === 'create') {
+                this.slug = this.name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+            }
+        },
+
+        async saveConfig() {
+            if (!this.name || this.name.trim() === '') {
+                Toast.fire({ icon: 'error', title: 'Company Name is required' });
+                this.activeTab = 'general';
+                return;
+            }
+            if (this.mode === 'create' && (!this.slug || this.slug.trim() === '')) {
+                Toast.fire({ icon: 'error', title: 'Tenant Slug is required' });
+                this.activeTab = 'general';
+                return;
+            }
+            if (this.mode === 'edit' && (!this.changeNote || this.changeNote.trim() === '')) {
+                Toast.fire({ icon: 'error', title: 'Vui lòng nhập lý do thay đổi (Change Note is required)' });
+                this.activeTab = 'general';
+                return;
+            }
+
+            // Validation SLA (TC2.4)
+            if (this.config.sla.defaultTargetDays < 0) {
+                Toast.fire({ icon: 'error', title: 'SLA phải lớn hơn 0' });
+                this.activeTab = 'sla';
+                return;
+            }
+            for (const key in this.config.sla.claimTypeSla) {
+                if (this.config.sla.claimTypeSla[key] < 0) {
+                    Toast.fire({ icon: 'error', title: `SLA cho ${key} phải lớn hơn 0` });
+                    this.activeTab = 'sla';
+                    return;
+                }
+            }
+
+            this.isSubmitting = true;
+            try {
+                const url = this.mode === 'create' ? '/api/tenants' : `/api/tenants/${this.tenantId}`;
+                const method = this.mode === 'create' ? 'POST' : 'PUT';
+                
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        slug: this.slug,
+                        name: this.name,
+                        config: this.config,
+                        changeNote: this.changeNote
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    Toast.fire({ icon: 'success', title: data.message || 'Saved successfully!' });
+                    if (this.mode === 'create') {
+                        setTimeout(() => window.location.href = `/tenants/${data.tenantId}/edit`, 1000);
+                    } else {
+                        this.versionNumber = data.versionNumber;
+                        this.changeNote = '';
+                    }
+                } else {
+                    Toast.fire({ icon: 'error', title: data.error || 'Failed to save configuration' });
+                }
+            } catch (e) {
+                Toast.fire({ icon: 'error', title: 'Network error while saving' });
+            } finally {
+                this.isSubmitting = false;
+            }
+        }
+     }">
+
+    <!-- Top Navigation Bar / Banner -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white rounded-3xl p-8 shadow-sm border border-slate-200 gap-4">
+        <div class="flex items-center space-x-4">
+            <a href="/tenants" class="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition font-bold text-sm">
+                ← Back
+            </a>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider"
+                          :class="mode === 'create' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'"
+                          x-text="mode === 'create' ? 'New Setup' : 'Active Tenant'">
+                    </span>
+                    <span class="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded" x-show="mode === 'edit'">
+                        v<span x-text="versionNumber"></span>
+                    </span>
+                </div>
+                <h1 class="text-2xl font-extrabold text-slate-900 mt-1">
+                    <span x-text="mode === 'create' ? 'Create New Tenant' : 'Configure: ' + name"></span>
+                </h1>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+            <a :href="'/tenants/preview?tenantId=' + tenantId" x-show="mode === 'edit'" class="px-4 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-xl text-sm font-bold transition flex items-center space-x-1">
+                <span>👁️</span>
+                <span>Sandbox Preview</span>
+            </a>
+            <a :href="'/tenants/' + tenantId + '/history'" x-show="mode === 'edit'" class="px-4 py-2.5 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-xl text-sm font-bold transition flex items-center space-x-1">
+                <span>🕒</span>
+                <span>History Log</span>
+            </a>
+            <button @click="saveConfig()" :disabled="isSubmitting" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center space-x-2">
+                <span x-show="isSubmitting" class="animate-spin">🔄</span>
+                <span x-show="!isSubmitting">💾</span>
+                <span x-text="mode === 'create' ? 'Create Tenant & Initialize' : 'Save Version v' + (versionNumber + 1)"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Editor Layout (Vertical Navigation) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Sidebar Navigation -->
+        <div class="lg:col-span-1 space-y-2">
+            {% for mod in modules %}
+            <button @click="activeTab = '{{ mod.id }}'" 
+                    :class="activeTab === '{{ mod.id }}' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 font-bold' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 font-medium'"
+                    class="w-full text-left px-5 py-4 rounded-2xl transition flex items-center justify-between group">
+                <div class="flex items-center space-x-3">
+                    <span class="text-lg">
+                        {% if mod.id == 'general' %}🏢{% endif %}
+                        {% if mod.id == 'branding' %}🎨{% endif %}
+                        {% if mod.id == 'claimTypes' %}📄{% endif %}
+                        {% if mod.id == 'approvalRules' %}⚖️{% endif %}
+                        {% if mod.id == 'notifications' %}🔔{% endif %}
+                        {% if mod.id == 'sla' %}⏱️{% endif %}
+                        {% if mod.id == 'customFields' %}🧩{% endif %}
+                    </span>
+                    <span class="text-sm">{{ mod.name }}</span>
+                </div>
+                <span class="text-xs" :class="activeTab === '{{ mod.id }}' ? 'text-blue-200' : 'text-slate-300 group-hover:text-slate-400'">→</span>
+            </button>
+            {% endfor %}
+
+            <!-- Save Helper Box -->
+            <div class="bg-gradient-to-tr from-slate-900 to-slate-800 text-slate-300 p-6 rounded-3xl shadow-xl mt-6 space-y-3">
+                <div class="flex items-center space-x-2 text-amber-400">
+                    <span>💡</span>
+                    <span class="text-xs font-bold uppercase tracking-wider">GitHub-style Versioning</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Saving modifications creates an immutable snapshot in <code class="text-white bg-slate-800 px-1.5 py-0.5 rounded">tenant_configs</code>. Old versions are never overwritten.
+                </p>
+            </div>
+        </div>
+
+        <!-- Form Workspace (Right Panel) -->
+        <div class="lg:col-span-3 bg-white rounded-3xl p-8 shadow-sm border border-slate-200 min-h-[500px]">
+            <div x-show="activeTab === 'general'" x-cloak>
+                {% include "modules/general.njk" %}
+            </div>
+            <div x-show="activeTab === 'branding'" x-cloak>
+                {% include "modules/branding.njk" %}
+            </div>
+            <div x-show="activeTab === 'claimTypes'" x-cloak>
+                {% include "modules/claimTypes.njk" %}
+            </div>
+            <div x-show="activeTab === 'approvalRules'" x-cloak>
+                {% include "modules/approvalRules.njk" %}
+            </div>
+            <div x-show="activeTab === 'notifications'" x-cloak>
+                {% include "modules/notifications.njk" %}
+            </div>
+            <div x-show="activeTab === 'sla'" x-cloak>
+                {% include "modules/sla.njk" %}
+            </div>
+            <div x-show="activeTab === 'customFields'" x-cloak>
+                {% include "modules/customFields.njk" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

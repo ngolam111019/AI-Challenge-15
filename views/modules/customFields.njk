@@ -1,0 +1,53 @@
+<div class="space-y-6">
+    <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900">Custom Metadata Fields</h2>
+            <p class="text-sm text-slate-500">Add dynamic, tenant-specific schema fields (e.g. Employee ID, Department, Budget Code) collected during claim intake.</p>
+        </div>
+        <button @click="config.customFields.text.push({ id: 'field_' + Math.floor(Math.random()*10000), label: 'New Custom Field', enabled: true, required: true })" type="button"
+                class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-sm flex items-center space-x-1">
+            <span>+ Add Custom Field</span>
+        </button>
+    </div>
+
+    <!-- Fields Table / Cards -->
+    <div class="space-y-4 max-w-3xl">
+        <template x-for="(field, idx) in config.customFields.text" :key="idx">
+            <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-2xs transition">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                    <!-- Field Label -->
+                    <div class="sm:col-span-5">
+                        <label class="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Display Label</label>
+                        <input type="text" x-model="field.label" @input="if(!field.id || field.id.startsWith('field_')) field.id = field.label.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, '_')" placeholder="e.g. Employee ID"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+
+                    <!-- Field ID / Key -->
+                    <div class="sm:col-span-4">
+                        <label class="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">JSON Key (ID)</label>
+                        <input type="text" x-model="field.id" placeholder="employee_id"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-slate-600 focus:ring-2 focus:ring-blue-500 text-xs">
+                    </div>
+
+                    <!-- Options & Delete -->
+                    <div class="sm:col-span-3 flex items-center justify-end space-x-4 pt-4 sm:pt-0">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" x-model="field.required" class="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500">
+                            <span class="text-xs font-bold text-rose-700">Required*</span>
+                        </label>
+
+                        <button @click="config.customFields.text.splice(idx, 1)" type="button" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Delete custom field">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+        
+        <div x-show="!config.customFields.text || config.customFields.text.length === 0" class="p-12 rounded-3xl bg-slate-50 border border-dashed border-slate-300 text-center text-slate-400">
+            <span class="text-3xl mb-2 block">🧩</span>
+            <p class="font-medium text-sm">No custom metadata fields configured for this tenant.</p>
+            <p class="text-xs text-slate-400 mt-1">Click "+ Add Custom Field" above to collect extra information such as Department or Cost Centers.</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,36 @@
+<div class="space-y-6" x-init="config.claimTypes.forEach(ct => ct.docsStr = ct.requiredDocs ? ct.requiredDocs.join(', ') : '')">
+    <div class="border-b border-slate-100 pb-4">
+        <h2 class="text-xl font-bold text-slate-900">Claim Types & Required Documents</h2>
+        <p class="text-sm text-slate-500">Configure which insurance claim types are supported by this tenant and their mandatory submission proofs.</p>
+    </div>
+
+    <div class="space-y-4 max-w-3xl">
+        <template x-for="(ct, index) in config.claimTypes" :key="ct.id">
+            <div class="p-6 rounded-2xl border transition" :class="ct.enabled ? 'bg-slate-50/80 border-blue-200 shadow-sm' : 'bg-white border-slate-200 opacity-60'">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" x-model="ct.enabled" :id="'ct-toggle-' + index" class="w-5 h-5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                        <label :for="'ct-toggle-' + index" class="font-bold text-slate-900 text-lg cursor-pointer flex items-center space-x-2">
+                            <span x-text="ct.name"></span>
+                            <span class="text-xs font-mono px-2 py-0.5 rounded uppercase" :class="ct.enabled ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-600'" x-text="ct.id"></span>
+                        </label>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider" :class="ct.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'" x-text="ct.enabled ? 'Enabled in Portal' : 'Disabled'"></span>
+                </div>
+
+                <div x-show="ct.enabled" x-collapse class="space-y-2 pt-2 border-t border-slate-200/60">
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider">Mandatory Verification Documents (Comma-separated)</label>
+                    <input type="text" x-model="ct.docsStr" @input="ct.requiredDocs = ct.docsStr.split(',').map(s => s.trim()).filter(Boolean)" placeholder="e.g. Identity Card, Original Hospital Invoice, Medical Report"
+                           class="w-full px-4 py-2 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm">
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        <template x-for="doc in (ct.requiredDocs || [])" :key="doc">
+                            <span class="inline-flex items-center text-xs bg-white font-medium border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs text-slate-700">
+                                📄 <span x-text="doc" class="ml-1"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>

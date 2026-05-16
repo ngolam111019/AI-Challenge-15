@@ -2,6 +2,26 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const configService = require('../services/configService');
+const moduleRegistry = require('../services/moduleRegistry');
+
+const defaultConfig = {
+    branding: { companyName: '', primaryColor: '#2563eb' },
+    claimTypes: [
+        { id: 'OUTPATIENT', name: 'Outpatient', enabled: true, requiredDocs: ['ID', 'Medical Bill'] },
+        { id: 'INPATIENT', name: 'Inpatient', enabled: false, requiredDocs: ['ID', 'Hospital Statement'] },
+        { id: 'DENTAL', name: 'Dental', enabled: false, requiredDocs: ['ID'] }
+    ],
+    approvalRules: {
+        autoApproveThreshold: 5000,
+        tiers: [
+            { min: 5000, max: 50000, role: 'assessor' },
+            { min: 50000, max: 1000000000, role: 'manager' }
+        ]
+    },
+    notifications: { events: [{ event: 'claim_submitted', channels: ['email'], template: 'default_submit_tpl' }] },
+    sla: { defaultTargetDays: 5, claimTypeSla: { OUTPATIENT: 5 }, escalation: [] },
+    customFields: { text: [], number: [] }
+};
 
 // GET /tenants - List all tenants
 router.get('/', (req, res) => {
@@ -10,7 +30,13 @@ router.get('/', (req, res) => {
 
 // GET /tenants/new - Create new tenant form
 router.get('/new', (req, res) => {
-    res.render('tenants/edit', { title: 'Create New Tenant', mode: 'create' });
+    res.render('tenants/edit', { 
+        title: 'Create New Tenant', 
+        mode: 'create',
+        modules: moduleRegistry,
+        config: defaultConfig,
+        versionNumber: 1
+    });
 });
 
 // GET /tenants/diff - Config diff screen
@@ -52,8 +78,9 @@ router.get('/:id/edit', async (req, res) => {
             title: `Configure: ${tenant.name}`, 
             mode: 'edit', 
             tenant, 
-            config: latestConfig ? latestConfig.config_data : null,
-            versionNumber: latestConfig ? latestConfig.version_number : 1
+            config: latestConfig ? latestConfig.config_data : defaultConfig,
+            versionNumber: latestConfig ? latestConfig.version_number : 1,
+            modules: moduleRegistry
         });
     } catch (err) {
         console.error(err);

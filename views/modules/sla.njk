@@ -1,0 +1,79 @@
+<div class="space-y-6">
+    <div class="border-b border-slate-100 pb-4">
+        <h2 class="text-xl font-bold text-slate-900">SLA & Escalation Deadlines</h2>
+        <p class="text-sm text-slate-500">Configure working day deadlines for claim evaluation and auto-escalation pathways.</p>
+    </div>
+
+    <!-- Default SLA Target -->
+    <div class="p-6 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 max-w-xl shadow-2xs">
+        <div class="flex items-center space-x-3 mb-2">
+            <span class="text-2xl">⏱️</span>
+            <div>
+                <h3 class="font-bold text-slate-900">Default SLA Resolution Target</h3>
+                <p class="text-xs text-slate-500">Baseline working days allowed from claim submission to final determination.</p>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center space-x-3">
+            <input type="number" x-model.number="config.sla.defaultTargetDays" min="0" step="1" placeholder="5"
+                   class="w-32 px-4 py-2.5 rounded-xl border border-amber-300 font-bold text-lg text-amber-800 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+            <span class="text-sm font-bold text-slate-600">Working Days</span>
+        </div>
+        <p class="text-xs text-rose-500 mt-1 font-semibold" x-show="config.sla.defaultTargetDays < 0">⚠️ SLA target days cannot be negative.</p>
+    </div>
+
+    <!-- Claim Type Specific SLAs -->
+    <div class="space-y-4 max-w-2xl pt-4">
+        <h3 class="font-bold text-slate-800 text-lg">Specific Claim Type Override SLAs</h3>
+        <p class="text-xs text-slate-500">If configured, these values override the default SLA resolution target for specific claim categories.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
+                <div>
+                    <span class="font-bold text-slate-800 text-sm">Outpatient Claims</span>
+                    <span class="block text-2xs font-mono text-slate-400">Key: OUTPATIENT</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <input type="number" x-model.number="config.sla.claimTypeSla.OUTPATIENT" min="0" placeholder="Default"
+                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
+                    <span class="text-xs text-slate-500">days</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
+                <div>
+                    <span class="font-bold text-slate-800 text-sm">Inpatient Claims</span>
+                    <span class="block text-2xs font-mono text-slate-400">Key: INPATIENT</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <input type="number" x-model.number="config.sla.claimTypeSla.INPATIENT" min="0" placeholder="Default"
+                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
+                    <span class="text-xs text-slate-500">days</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
+                <div>
+                    <span class="font-bold text-slate-800 text-sm">Dental Claims</span>
+                    <span class="block text-2xs font-mono text-slate-400">Key: DENTAL</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <input type="number" x-model.number="config.sla.claimTypeSla.DENTAL" min="0" placeholder="Default"
+                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
+                    <span class="text-xs text-slate-500">days</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
+                <div>
+                    <span class="font-bold text-slate-800 text-sm">Maternity Claims</span>
+                    <span class="block text-2xs font-mono text-slate-400">Key: MATERNITY</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <input type="number" x-model.number="config.sla.claimTypeSla.MATERNITY" min="0" placeholder="Default"
+                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
+                    <span class="text-xs text-slate-500">days</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

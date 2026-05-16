@@ -1,0 +1,74 @@
+<div class="space-y-6" x-init="
+    const defaultEvents = ['claim_submitted', 'approved', 'rejected', 'payment_sent'];
+    if (!config.notifications.events || config.notifications.events.length === 0) {
+        config.notifications.events = defaultEvents.map(ev => ({ event: ev, channels: ['email'], template: ev + '_tpl' }));
+    } else {
+        defaultEvents.forEach(ev => {
+            if (!config.notifications.events.find(e => e.event === ev)) {
+                config.notifications.events.push({ event: ev, channels: ['email'], template: ev + '_tpl' });
+            }
+        });
+    }
+">
+    <div class="border-b border-slate-100 pb-4">
+        <h2 class="text-xl font-bold text-slate-900">Notification Hooks & Channels</h2>
+        <p class="text-sm text-slate-500">Configure multi-channel communication hooks (Email, SMS, Webhook) triggered across claim lifecycle milestones.</p>
+    </div>
+
+    <div class="space-y-4 max-w-3xl">
+        <template x-for="(evt, idx) in config.notifications.events" :key="evt.event">
+            <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-sm transition">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 mb-4 gap-2">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">
+                            <template x-if="evt.event === 'claim_submitted'"><span>📥</span></template>
+                            <template x-if="evt.event === 'approved'"><span>🎉</span></template>
+                            <template x-if="evt.event === 'rejected'"><span>❌</span></template>
+                            <template x-if="evt.event === 'payment_sent'"><span>💸</span></template>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg capitalize" x-text="evt.event.replace('_', ' ')"></h3>
+                            <p class="text-xs font-mono text-slate-400" x-text="'Event code: ' + evt.event"></p>
+                        </div>
+                    </div>
+
+                    <!-- Template ID input -->
+                    <div class="w-full sm:w-64">
+                        <label class="block text-2xs font-bold text-slate-500 uppercase tracking-wider mb-1">Message Template Code</label>
+                        <input type="text" x-model="evt.template" placeholder="corporate_submit_tpl"
+                               class="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Channel Toggles -->
+                <div class="flex flex-wrap gap-6 pt-2 items-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Channels:</span>
+                    
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" :value="'email'" 
+                               :checked="evt.channels.includes('email')"
+                               @change="$event.target.checked ? evt.channels.push('email') : evt.channels = evt.channels.filter(c => c !== 'email')"
+                               class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                        <span class="text-sm font-bold text-slate-700">📧 Email Hook</span>
+                    </label>
+
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" :value="'sms'" 
+                               :checked="evt.channels.includes('sms')"
+                               @change="$event.target.checked ? evt.channels.push('sms') : evt.channels = evt.channels.filter(c => c !== 'sms')"
+                               class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                        <span class="text-sm font-bold text-slate-700">📱 SMS Gateway</span>
+                    </label>
+
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" :value="'webhook'" 
+                               :checked="evt.channels.includes('webhook')"
+                               @change="$event.target.checked ? evt.channels.push('webhook') : evt.channels = evt.channels.filter(c => c !== 'webhook')"
+                               class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                        <span class="text-sm font-bold text-slate-700">🌐 HTTP Webhook (Gov/ERP)</span>
+                    </label>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>

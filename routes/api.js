@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const configService = require('../services/configService');
 
 // GET /api/tenants - HTML table rows for HTMX
 router.get('/tenants', async (req, res) => {
@@ -60,13 +61,106 @@ router.get('/tenants', async (req, res) => {
     }
 });
 
+// POST /api/tenants - Create new tenant
+router.post('/tenants', async (req, res) => {
+    try {
+        const { slug, name, config, changeNote } = req.body;
+        
+        if (!slug || !name) {
+            return res.status(400).json({ error: 'Slug and Tenant Name are required' });
+        }
+
+        // Validate SLA
+        if (config && config.sla) {
+            if (config.sla.defaultTargetDays < 0) {
+                return res.status(400).json({ error: 'SLA phải lớn hơn 0 (SLA target days must be >= 0)' });
+            }
+            for (const key in config.sla.claimTypeSla) {
+                if (config.sla.claimTypeSla[key] < 0) {
+                    return res.status(400).json({ error: `SLA cho ${key} phải lớn hơn 0` });
+                }
+            }
+        }
+
+        // Check unique slug
+        const slugCheck = await db.query('SELECT id FROM tenants WHERE slug = $1', [slug]);
+        if (slugCheck.rows.length > 0) {
+            return res.status(400).json({ error: 'Tenant Slug already exists. Please choose another.' });
+        }
+
+        // Insert tenant
+        const tenantRes = await db.query(
+            'INSERT INTO tenants (slug, name) VALUES ($1, $2) RETURNING id',
+            [slug, name]
+        );
+        const tenantId = tenantRes.rows[0].id;
+
+        // Insert initial config version
+        const note = changeNote || 'Initial configuration setup';
+        await configService.createNewVersion(tenantId, config || {}, note);
+
+        res.json({ success: true, tenantId, message: 'Tenant created successfully!' });
+    } catch (err) {
+        console.error('Create tenant error:', err);
+        res.status(500).json({ error: 'Server error while creating tenant' });
+    }
+});
+
+// PUT /api/tenants/:id - Update tenant & create new version
+router.put('/tenants/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, config, changeNote } = req.body;
+        
+        if (!name) {
+            return res.status(400).json({ error: 'Tenant Name is required' });
+        }
+
+        // Mandatory Change Note validation (TC2.3)
+        if (!changeNote || changeNote.trim() === '') {
+            return res.status(400).json({ error: 'Vui lòng nhập lý do thay đổi (Change Note is required)' });
+        }
+
+        // SLA validation (TC2.4)
+        if (config && config.sla) {
+            if (config.sla.defaultTargetDays < 0) {
+                return res.status(400).json({ error: 'SLA phải lớn hơn 0 (SLA target days must be >= 0)' });
+            }
+            for (const key in config.sla.claimTypeSla) {
+                if (config.sla.claimTypeSla[key] < 0) {
+                    return res.status(400).json({ error: `SLA cho ${key} phải lớn hơn 0` });
+                }
+            }
+        }
+
+        // Update tenant name
+        await db.query('UPDATE tenants SET name = $1 WHERE id = $2', [name, id]);
+
+        // Create new version
+        const newConfigId = await configService.createNewVersion(id, config || {}, changeNote);
+        
+        // Get new version number
+        const vRes = await db.query('SELECT version_number FROM tenant_configs WHERE id = $1', [newConfigId]);
+        const newVersionNumber = vRes.rows[0].version_number;
+
+        res.json({ 
+            success: true, 
+            versionNumber: newVersionNumber, 
+            message: `Successfully saved version v${newVersionNumber}!` 
+        });
+    } catch (err) {
+        console.error('Update tenant error:', err);
+        res.status(500).json({ error: 'Server error while updating tenant' });
+    }
+});
+
 // DELETE /api/tenants/:id - Delete single tenant
 router.delete('/tenants/:id', async (req, res) => {
     try {
         const { id } = req.params;
         await db.query('DELETE FROM tenants WHERE id = $1', [id]);
         res.setHeader('HX-Trigger', JSON.stringify({ showToast: { message: 'Tenant deleted successfully!', type: 'success' } }));
-        res.send(''); // Return empty string to swap outerHTML and remove the row
+        res.send(''); 
     } catch (err) {
         console.error('Delete error:', err);
         res.status(500).send('<span class="text-rose-500">Error deleting tenant</span>');
