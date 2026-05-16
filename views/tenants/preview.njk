@@ -85,10 +85,14 @@
                 amount: Number(this.amount) || 0,
                 customFields: this.customFieldValues
             };
-            htmx.ajax('POST', '/api/preview/simulate', {
-                values: payload,
-                target: '#pipeline-output'
-            });
+            fetch('/api/preview/simulate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => res.text()).then(html => {
+                const target = document.querySelector('#pipeline-output');
+                if (target) target.innerHTML = html;
+            }).catch(err => console.error('Simulation error:', err));
         }
      }"
      x-init="if (tenantId) setTimeout(() => loadContext(), 50)">
