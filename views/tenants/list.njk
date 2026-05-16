@@ -65,8 +65,8 @@
                         const res = await fetch('/api/admin/reset-seed', { method: 'POST' });
                         const data = await res.json();
                         if (res.ok) {
-                            document.body.dispatchEvent(new Event('refreshTenants'));
                             Toast.fire({ icon: 'success', title: data.message });
+                            setTimeout(() => window.location.reload(), 600);
                         } else {
                             Toast.fire({ icon: 'error', title: data.error || 'Failed to reset' });
                         }
