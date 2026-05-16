@@ -7,6 +7,11 @@
 
 Một nền tảng quản trị và thực thi cấu hình bảo hiểm đa khách hàng (Multi-Tenant SaaS) tiêu chuẩn doanh nghiệp. Được thiết kế với mục tiêu **Zero-Code Onboarding**, cho phép các đối tác bảo hiểm tùy biến toàn bộ quy tắc phê duyệt, định tuyến bồi thường, tính toán SLA, và kênh thông báo hoàn toàn thông qua giao diện UI trực quan mà không cần can thiệp bất kỳ dòng mã nguồn nào.
 
+> [!IMPORTANT]
+> **🌟 ĐÁNH GIÁ & NGHIỆM THU (DÀNH CHO NHÀ TUYỂN DỤNG / TECH LEADS):**
+> - **🔗 Ứng dụng Trực tuyến (Live Demo):** [https://ai-challenge-15.onrender.com/](https://ai-challenge-15.onrender.com/)
+> - **📖 Hướng dẫn Đánh giá Chi tiết (Evaluation Walkthrough):** Xem file **[EVALUATION_GUIDE.md](./EVALUATION_GUIDE.md)** để rà soát và kiểm chứng trọn vẹn toàn bộ 8 tiêu chí nghiệm thu của đề bài chỉ trong chưa đầy 5 phút!
+
 ---
 
 ## 🌟 Điểm nhấn Kiến trúc Kỹ thuật (Key Engineering Highlights)
