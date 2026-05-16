@@ -10,6 +10,10 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+    res.locals.JSON = JSON;
+    next();
+});
 
 // Nunjucks Configuration (Jinja2-like)
 nunjucks.configure('views', {
