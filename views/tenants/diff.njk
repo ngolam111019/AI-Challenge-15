@@ -25,7 +25,7 @@
             this.showDiffOnly = !this.showDiffOnly;
             document.querySelectorAll('#diff-results tr').forEach(tr => {
                 if (this.showDiffOnly) {
-                    if (!tr.classList.contains('is-diff-row')) {
+                    if (!tr.classList.contains('is-diff-row') && !tr.classList.contains('is-section-header')) {
                         tr.classList.add('hidden');
                     }
                 } else {

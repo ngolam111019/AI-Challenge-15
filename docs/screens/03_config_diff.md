@@ -36,16 +36,19 @@ Khi phát hiện có tham số `id1` và `id2`, HTMX tự động chọn sẵn 2
 
 ## 2. Bảng Trực quan hóa Khác biệt (Side-by-Side Diff Table)
 
-Bảng so sánh chia thành 3 cột chính:
-1. **Tên Hạng mục (Config Parameter)**: Tên thông số cấu hình của các module (SLA, Threshold...).
-2. **Giá trị của Tenant A**.
-3. **Giá trị của Tenant B**.
+Bảng so sánh chia thành 3 cột chính và được tổ chức mạch lạc thành **7 phân hệ (Modules)** tường minh tương tự giao diện Thêm mới / Chỉnh sửa:
+1. **🏢 General Information & Identity**: Tên doanh nghiệp, định danh `Slug`.
+2. **🎨 Branding & Visual Aesthetics**: So sánh màu sắc Primary/Secondary với hộp màu trực quan.
+3. **📑 Claim Types & Required Documentation**: Đối chiếu 5 loại hình bảo hiểm (OUTPATIENT, INPATIENT, DENTAL, MATERNITY, OPTICAL) kèm trạng thái (Bật/Tắt) và danh sách tài liệu Bắt buộc/Tùy chọn.
+4. **🛡️ Approval Rules & Hierarchy Matrix**: So sánh hạn mức duyệt tự động và cấu trúc Tiers phân cấp.
+5. **📢 Lifecycle Notification Hooks**: Đối chiếu các kênh hoạt động (Email, SMS, Webhook) và thiết lập Template (Default vs Custom Endpoint).
+6. **⏳ SLA Resolution & Escalations**: Ngày làm việc hợp lệ trong tuần, mục tiêu xử lý (Target Days) và lộ trình tự động leo thang (Escalations).
+7. **🧩 Custom Metadata Schema Verification**: So sánh các trường siêu dữ liệu tùy chỉnh.
 
 ### Hiệu ứng Highlight Khác biệt (Diff Highlighting)
-Để người dùng không phải căng mắt tìm điểm khác biệt:
-- **Hàng có giá trị giống nhau (Identical)**: Hiển thị nền trắng hoặc xám nhạt bình thường.
-- **Hàng có giá trị khác nhau (Differences - `[≠]`)**: Được highlight tự động bằng nền màu vàng nhạt (Amber-50) hoặc viền cam, kèm theo biểu tượng `[≠]` trực quan.
-- **Dữ liệu thiếu/trống**: Nếu Tenant A có Custom Field nhưng Tenant B không có, ô của Tenant B hiển thị dấu gạch ngang mờ `(None)` màu đỏ nhạt.
+- **Hàng có giá trị giống nhau (Identical)**: Hiển thị nền trắng bình thường.
+- **Hàng có giá trị khác nhau (Differences - `[≠]`)**: Được highlight tự động bằng nền màu vàng nhạt (Amber-50/90), viền vàng cam kèm theo biểu tượng `[≠] Diff` trực quan.
+- **Tiêu đề phân hệ (Section Headers)**: Có dải phân cách xám nhạt với tiêu đề in đậm giúp người dùng dễ dàng định vị vị trí cấu hình.
 
 ## 3. Tối ưu Trải nghiệm (UX Features)
-- **Toggle "Show Differences Only"**: Một công tắc bật/tắt để ẩn đi tất cả các hàng có giá trị giống nhau, chỉ hiển thị những điểm khác biệt. Tính năng này vô cùng đắt giá khi các Tenant có cấu hình dài hàng trăm mục.
+- **Toggle "Show Differences Only"**: Một nút bấm thông minh (`⚡ Filter Differences Only [≠]`) cho phép lập tức ẩn đi tất cả các thông số giống nhau, chỉ giữ lại các hàng có điểm khác biệt và các thanh Tiêu đề phân hệ (Section Headers) tương ứng.

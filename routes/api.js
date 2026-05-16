@@ -82,53 +82,140 @@ router.get('/tenants/diff-data', async (req, res) => {
         const c1 = cfg1Res ? cfg1Res.config_data : {};
         const c2 = cfg2Res ? cfg2Res.config_data : {};
 
-        // Helper to format rows
-        const makeRow = (label, val1, val2, isCode = false) => {
-            const v1Str = typeof val1 === 'object' ? JSON.stringify(val1) : String(val1 ?? '(None)');
-            const v2Str = typeof val2 === 'object' ? JSON.stringify(val2) : String(val2 ?? '(None)');
-            const isDiff = v1Str !== v2Str;
+        // Section Header Generator
+        const makeSection = (title) => `
+            <tr class="bg-slate-100/90 border-t-2 border-b border-slate-200 is-section-header shadow-2xs">
+                <td colspan="3" class="px-6 py-3 font-extrabold text-xs uppercase tracking-wider text-slate-800">
+                    ${title}
+                </td>
+            </tr>
+        `;
+
+        // Row Generator
+        const makeRow = (label, v1Html, v2Html, raw1, raw2) => {
+            const r1Str = typeof raw1 === 'object' ? JSON.stringify(raw1) : String(raw1 ?? '');
+            const r2Str = typeof raw2 === 'object' ? JSON.stringify(raw2) : String(raw2 ?? '');
+            const isDiff = r1Str !== r2Str;
             const diffClass = isDiff ? 'bg-amber-50/90 font-semibold border-l-4 border-amber-500 text-amber-900 is-diff-row' : 'hover:bg-slate-50 text-slate-700';
-            const badge = isDiff ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-800">[≠] Diff</span>' : '';
+            const badge = isDiff ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-800 shadow-2xs">[≠] Diff</span>' : '';
 
             return `
             <tr class="transition ${diffClass}">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900 flex items-center justify-between">
+                <td class="px-6 py-4.5 whitespace-nowrap text-sm font-bold text-slate-900 flex items-center justify-between">
                     <span>${label}</span>
                     ${badge}
                 </td>
-                <td class="px-6 py-4 text-sm ${isCode ? 'font-mono text-xs bg-white px-2 py-1 rounded border border-slate-200 inline-block mt-1' : ''} ${v1Str === '(None)' ? 'text-slate-400 italic' : ''}">${v1Str}</td>
-                <td class="px-6 py-4 text-sm ${isCode ? 'font-mono text-xs bg-white px-2 py-1 rounded border border-slate-200 inline-block mt-1' : ''} ${v2Str === '(None)' ? 'text-slate-400 italic' : ''}">${v2Str}</td>
+                <td class="px-6 py-4.5 text-sm align-top">${v1Html}</td>
+                <td class="px-6 py-4.5 text-sm align-top">${v2Html}</td>
             </tr>`;
         };
 
-        const claims1 = (c1.claimTypes || []).filter(c=>c.enabled).map(c=>c.id).join(', ') || '(None)';
-        const claims2 = (c2.claimTypes || []).filter(c=>c.enabled).map(c=>c.id).join(', ') || '(None)';
+        // Formatting Helpers
+        const fmtText = (val, isCode = false) => `<span class="${isCode ? 'font-mono text-xs bg-white px-2.5 py-1 rounded border border-slate-200 font-bold text-slate-800 shadow-2xs inline-block' : 'text-slate-800 font-semibold'}">${val || '(None)'}</span>`;
+        const fmtColor = (hex) => `<div class="flex items-center space-x-2"><span class="w-5 h-5 inline-block rounded-lg border border-slate-300 shadow-2xs" style="background: ${hex || '#000'}"></span> <code class="font-mono text-xs font-bold bg-white px-2 py-0.5 rounded border border-slate-200">${hex || '(None)'}</code></div>`;
+        
+        const getClaimObj = (cfg, cid) => (cfg.claimTypes || []).find(c => c.id === cid) || { id: cid, enabled: false, requiredDocs: [] };
+        const fmtClaim = (claim) => {
+            const statusHtml = claim.enabled 
+                ? `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs inline-block mb-2.5 shadow-2xs">Enabled ✅</span>` 
+                : `<span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-bold text-xs inline-block mb-2.5">Disabled ❌</span>`;
+            
+            if (!claim.enabled) return statusHtml;
 
-        const auto1 = `$ ${(c1.approvalRules?.autoApproveThreshold ?? 0).toLocaleString()}`;
-        const auto2 = `$ ${(c2.approvalRules?.autoApproveThreshold ?? 0).toLocaleString()}`;
+            const docs = claim.requiredDocs || [];
+            const docsHtml = docs.length === 0 
+                ? '<div class="text-slate-400 italic text-xs">No verification documents required</div>' 
+                : `<div class="space-y-1.5"><div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Required Documents:</div><div class="flex flex-wrap gap-1.5">` + docs.map(d => `<div class="bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs font-semibold text-xs inline-flex items-center space-x-1.5"><span>📄 ${d.name}</span> <span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-mono font-extrabold ${d.required ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'}">${d.required ? 'Mandatory' : 'Optional'}</span></div>`).join('') + `</div></div>`;
+                
+            return `<div class="space-y-2">${statusHtml}${docsHtml}</div>`;
+        };
 
-        const tiers1 = `${c1.approvalRules?.tiers?.length ?? 0} Tiers (${(c1.approvalRules?.tiers ?? []).map(t=>t.role).join(', ')})`;
-        const tiers2 = `${c2.approvalRules?.tiers?.length ?? 0} Tiers (${(c2.approvalRules?.tiers ?? []).map(t=>t.role).join(', ')})`;
+        const fmtAuto = (rule) => `<div class="font-mono font-extrabold bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs inline-block text-emerald-800 text-base">$ ${(rule?.autoApproveThreshold ?? 0).toLocaleString()}</div>`;
+        const fmtTiers = (rule) => {
+            const tiers = rule?.tiers || [];
+            if (tiers.length === 0) return '<div class="text-slate-400 italic text-xs">No tiers configured</div>';
+            return `<div class="space-y-2.5">` + tiers.map((t, i) => `<div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs text-xs space-y-1.5"><div class="flex items-center justify-between font-bold text-purple-900 uppercase"><span>Tier ${i+1}: Role</span> <span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg font-mono font-extrabold">${t.role}</span></div><div class="text-slate-600 font-medium">Approval Limit: <span class="font-mono font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">$${Number(t.min).toLocaleString()}</span> → <span class="font-mono font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">${t.max >= 1000000000 ? 'Unlimited ∞' : '$' + Number(t.max).toLocaleString()}</span></div></div>`).join('') + `</div>`;
+        };
 
-        const notif1 = (c1.notifications?.events?.[0]?.channels || []).join(', ') || '(None)';
-        const notif2 = (c2.notifications?.events?.[0]?.channels || []).join(', ') || '(None)';
+        const getEvt = (cfg, evtName) => (cfg.notifications?.events || []).find(e => e.event === evtName);
+        const fmtEvt = (evtObj) => {
+            if (!evtObj || !evtObj.channels || evtObj.channels.length === 0) return '<div class="text-slate-400 italic text-xs font-semibold">Inactive / Disabled</div>';
+            const channels = evtObj.channels || [];
+            let html = `<div class="space-y-2.5"><div class="flex flex-wrap gap-1.5">` + channels.map(ch => `<span class="px-2.5 py-1 bg-blue-100 text-blue-800 font-extrabold text-xs uppercase rounded-lg shadow-2xs">🏷️ ${ch}</span>`).join('') + `</div>`;
+            
+            const cfg = evtObj.channelConfigs || {};
+            channels.forEach(ch => {
+                const chCfg = cfg[ch] || {};
+                const isCustom = chCfg.templateType === 'custom';
+                html += `<div class="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs text-xs space-y-1"><div class="font-bold uppercase text-slate-700">${ch} Channel Config:</div><div class="font-mono bg-slate-50 p-2 rounded-lg text-slate-700 border border-slate-100 font-medium truncate">${isCustom ? `Custom Endpoint/ID: ${chCfg.customTemplateId || '(Not set)'}` : 'Default System Standard Template'}</div></div>`;
+            });
+            html += `</div>`;
+            return html;
+        };
 
-        const sla1 = `${c1.sla?.defaultTargetDays ?? 5} working days`;
-        const sla2 = `${c2.sla?.defaultTargetDays ?? 5} working days`;
+        const fmtWorkingDays = (sla) => {
+            const days = sla?.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            return `<div class="flex flex-wrap gap-1.5">` + days.map(d => `<span class="bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold px-2.5 py-1 rounded-xl text-xs shadow-2xs">${d}</span>`).join('') + `</div>`;
+        };
+        const fmtSlaRule = (sla, cid) => {
+            const rule = sla?.claimTypeSla?.[cid];
+            if (!rule) return '<div class="text-slate-400 italic text-xs">Using default SLA resolution target</div>';
+            let html = `<div class="space-y-2.5"><div class="font-extrabold text-xs text-blue-900">Target Resolution: <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-lg font-mono ml-1 shadow-2xs">${rule.targetDays ?? 5} working days</span></div>`;
+            const esc = rule.escalations || [];
+            if (esc.length > 0) {
+                html += `<div class="text-[11px] font-bold uppercase tracking-wider text-rose-800 pt-1">🚨 Auto-Escalation Pathways:</div><div class="space-y-1.5">` + esc.map(e => `<div class="bg-rose-50 border border-rose-200 p-2.5 rounded-xl text-xs font-bold text-rose-900 flex items-center justify-between shadow-2xs"><span>If delayed by +${e.delayDays}d:</span> <span class="uppercase bg-white px-2.5 py-1 rounded-lg border border-rose-200 text-rose-700 font-mono font-extrabold">Notify ${e.notifyRole}</span></div>`).join('') + `</div>`;
+            } else {
+                html += `<div class="text-[11px] text-slate-400 italic">No escalations configured</div>`;
+            }
+            html += `</div>`;
+            return html;
+        };
 
-        const fields1 = (c1.customFields?.text || []).map(f=>f.label).join(', ') || '(None)';
-        const fields2 = (c2.customFields?.text || []).map(f=>f.label).join(', ') || '(None)';
+        const fmtFields = (fields) => {
+            if (!fields || fields.length === 0) return '<div class="text-slate-400 italic text-xs">No custom fields configured</div>';
+            return `<div class="space-y-2.5">` + fields.map(f => `<div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-1.5"><div class="flex items-center justify-between"><span class="font-extrabold text-sm text-slate-900">${f.label}</span> <span class="px-2 py-0.5 rounded text-[10px] uppercase font-mono font-extrabold ${f.required ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}">${f.required ? 'Required' : 'Optional'}</span></div><div class="text-xs text-slate-500 font-mono space-y-1 pt-1 border-t border-slate-100"><div>Key: <span class="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-700 font-bold">${f.key}</span></div>${f.regex ? `<div>Regex: <span class="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 text-slate-800 font-bold">${f.regex}</span></div>` : ''}</div></div>`).join('') + `</div>`;
+        };
+
+        const claimTypesList = ['OUTPATIENT', 'INPATIENT', 'DENTAL', 'MATERNITY', 'OPTICAL'];
+        const eventsList = ['claim_submitted', 'approved', 'rejected', 'payment_sent'];
 
         let html = `
-            ${makeRow('Company Registered Name', t1.name, t2.name)}
-            ${makeRow('Unique Slug Identifier', t1.slug, t2.slug, true)}
-            ${makeRow('Primary Brand Color', c1.branding?.primaryColor ?? '#2563eb', c2.branding?.primaryColor ?? '#2563eb', true)}
-            ${makeRow('Supported Claim Types', claims1, claims2)}
-            ${makeRow('Auto-Approval Threshold', auto1, auto2)}
-            ${makeRow('Approval Matrix Tiers', tiers1, tiers2)}
-            ${makeRow('Notification Channels', notif1, notif2)}
-            ${makeRow('Default SLA Target Days', sla1, sla2)}
-            ${makeRow('Required Custom Metadata Fields', fields1, fields2)}
+            ${makeSection('🏢 1. General Information & Identity')}
+            ${makeRow('Company Registered Name', fmtText(t1.name), fmtText(t2.name), t1.name, t2.name)}
+            ${makeRow('Unique Slug Identifier', fmtText(t1.slug, true), fmtText(t2.slug, true), t1.slug, t2.slug)}
+
+            ${makeSection('🎨 2. Branding & Visual Aesthetics')}
+            ${makeRow('Primary Brand Color', fmtColor(c1.branding?.primaryColor), fmtColor(c2.branding?.primaryColor), c1.branding?.primaryColor, c2.branding?.primaryColor)}
+            ${makeRow('Secondary Brand Color', fmtColor(c1.branding?.secondaryColor), fmtColor(c2.branding?.secondaryColor), c1.branding?.secondaryColor, c2.branding?.secondaryColor)}
+
+            ${makeSection('📑 3. Claim Types & Required Documentation')}
+            ${claimTypesList.map(cid => {
+                const cl1 = getClaimObj(c1, cid);
+                const cl2 = getClaimObj(c2, cid);
+                return makeRow(`Claim Type: ${cid}`, fmtClaim(cl1), fmtClaim(cl2), cl1, cl2);
+            }).join('')}
+
+            ${makeSection('🛡️ 4. Approval Rules & Hierarchy Matrix')}
+            ${makeRow('Instant Auto-Approval Threshold', fmtAuto(c1.approvalRules), fmtAuto(c2.approvalRules), c1.approvalRules?.autoApproveThreshold, c2.approvalRules?.autoApproveThreshold)}
+            ${makeRow('Approval Hierarchy Tiers', fmtTiers(c1.approvalRules), fmtTiers(c2.approvalRules), c1.approvalRules?.tiers, c2.approvalRules?.tiers)}
+
+            ${makeSection('📢 5. Lifecycle Notification Hooks')}
+            ${eventsList.map(evt => {
+                const ev1 = getEvt(c1, evt);
+                const ev2 = getEvt(c2, evt);
+                return makeRow(`Event Hook: <code class="font-mono text-xs bg-white px-2 py-0.5 rounded border border-slate-200 text-blue-700 ml-1 font-bold uppercase">${evt}</code>`, fmtEvt(ev1), fmtEvt(ev2), ev1, ev2);
+            }).join('')}
+
+            ${makeSection('⏳ 6. SLA Resolution & Escalations')}
+            ${makeRow('Active Working Days in Week', fmtWorkingDays(c1.sla), fmtWorkingDays(c2.sla), c1.sla?.workingDays, c2.sla?.workingDays)}
+            ${claimTypesList.map(cid => {
+                const s1 = c1.sla?.claimTypeSla?.[cid];
+                const s2 = c2.sla?.claimTypeSla?.[cid];
+                return makeRow(`SLA Target: ${cid}`, fmtSlaRule(c1.sla, cid), fmtSlaRule(c2.sla, cid), s1, s2);
+            }).join('')}
+
+            ${makeSection('🧩 7. Custom Metadata Schema Verification')}
+            ${makeRow('Text Custom Metadata Fields', fmtFields(c1.customFields?.text), fmtFields(c2.customFields?.text), c1.customFields?.text, c2.customFields?.text)}
         `;
 
         res.send(html);
