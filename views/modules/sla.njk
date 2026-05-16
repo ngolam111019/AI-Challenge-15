@@ -67,7 +67,9 @@
                         <div class="flex items-center space-x-3 bg-blue-50/60 px-4 py-2 rounded-2xl border border-blue-200/80">
                             <label class="text-xs font-bold text-blue-900 uppercase tracking-wider">Target Processing Time:</label>
                             <div class="flex items-center space-x-1 bg-white px-2 py-1 rounded-xl shadow-2xs border border-blue-200">
-                                <input type="number" x-model.number="config.sla.claimTypeSla[ct.id].targetDays" min="1" step="1"
+                                <input type="number" x-model.number="config.sla.claimTypeSla[ct.id].targetDays" 
+                                       @input="if(config.sla.claimTypeSla[ct.id].targetDays < 1) config.sla.claimTypeSla[ct.id].targetDays = 1" 
+                                       min="1" step="1"
                                        class="w-16 bg-transparent text-center font-extrabold text-sm text-blue-700 focus:outline-none font-mono">
                                 <span class="text-xs font-bold text-slate-600">Days</span>
                             </div>

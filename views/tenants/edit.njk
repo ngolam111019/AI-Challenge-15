@@ -91,6 +91,34 @@
                 return;
             }
 
+            // Client-side validations for TC2.1, TC2.2, TC2.4
+            if (this.config && this.config.approvalRules && Number(this.config.approvalRules.autoApproveThreshold) < 0) {
+                Toast.fire({ icon: 'error', title: 'Ngưỡng phê duyệt tự động không được là số âm (Auto-approval threshold must be >= 0)' });
+                this.activeTab = 'approvalRules';
+                return;
+            }
+
+            if (this.config && Array.isArray(this.config.claimTypes)) {
+                const hasEnabled = this.config.claimTypes.some(ct => ct.enabled === true || ct.enabled === 'true');
+                if (!hasEnabled) {
+                    Toast.fire({ icon: 'error', title: 'Bắt buộc phải kích hoạt ít nhất một loại hình bảo hiểm (At least one claim type must be enabled)' });
+                    this.activeTab = 'claimTypes';
+                    return;
+                }
+            }
+
+            if (this.config && this.config.sla && this.config.sla.claimTypeSla) {
+                for (const key in this.config.sla.claimTypeSla) {
+                    const slaObj = this.config.sla.claimTypeSla[key];
+                    const days = typeof slaObj === 'object' ? Number(slaObj?.targetDays) : Number(slaObj);
+                    if (isNaN(days) || days <= 0) {
+                        Toast.fire({ icon: 'error', title: `Thời gian xử lý mục tiêu (SLA) cho ${key} phải lớn hơn 0 ngày` });
+                        this.activeTab = 'sla';
+                        return;
+                    }
+                }
+            }
+
             if (this.mode === 'create') {
                 this.changeNote = 'Initial configuration setup';
             } else {

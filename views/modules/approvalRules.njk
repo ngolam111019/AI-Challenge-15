@@ -15,7 +15,9 @@
         </div>
         <div class="mt-4 flex items-center space-x-2">
             <span class="text-lg font-extrabold text-slate-400">$</span>
-            <input type="number" x-model.number="config.approvalRules.autoApproveThreshold" min="0" step="500" placeholder="20000"
+            <input type="number" x-model.number="config.approvalRules.autoApproveThreshold" 
+                   @input="if(config.approvalRules.autoApproveThreshold < 0) config.approvalRules.autoApproveThreshold = 0" 
+                   min="0" step="500" placeholder="20000"
                    class="w-full px-4 py-2.5 rounded-xl border border-blue-200 font-extrabold text-lg text-blue-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
             <span class="text-sm font-extrabold text-slate-500">USD</span>
         </div>

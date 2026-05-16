@@ -225,6 +225,40 @@ router.get('/tenants/diff-data', async (req, res) => {
     }
 });
 
+// Validation helper for TC2
+function validateTenantConfig(config) {
+    if (!config) return null;
+    
+    // 1. Auto-approval threshold must be >= 0
+    if (config.approvalRules && config.approvalRules.autoApproveThreshold !== undefined) {
+        const thresh = Number(config.approvalRules.autoApproveThreshold);
+        if (isNaN(thresh) || thresh < 0) {
+            return 'Ngưỡng phê duyệt tự động không được là số âm (Auto-approval threshold must be >= 0)';
+        }
+    }
+    
+    // 2. At least one claim type enabled
+    if (config.claimTypes && Array.isArray(config.claimTypes)) {
+        const hasEnabled = config.claimTypes.some(ct => ct.enabled === true || ct.enabled === 'true');
+        if (!hasEnabled) {
+            return 'Bắt buộc phải kích hoạt ít nhất một loại hình bảo hiểm (At least one claim type must be enabled)';
+        }
+    }
+    
+    // 3. SLA must be positive
+    if (config.sla && config.sla.claimTypeSla) {
+        for (const key in config.sla.claimTypeSla) {
+            const slaObj = config.sla.claimTypeSla[key];
+            const days = typeof slaObj === 'object' ? Number(slaObj?.targetDays) : Number(slaObj);
+            if (isNaN(days) || days <= 0) {
+                return `Thời gian xử lý mục tiêu (SLA) cho ${key} phải lớn hơn 0 ngày`;
+            }
+        }
+    }
+    
+    return null;
+}
+
 // POST /api/tenants - Create new tenant
 router.post('/tenants', async (req, res) => {
     try {
@@ -234,16 +268,9 @@ router.post('/tenants', async (req, res) => {
             return res.status(400).json({ error: 'Slug and Tenant Name are required' });
         }
 
-        // Validate SLA
-        if (config && config.sla) {
-            if (config.sla.defaultTargetDays < 0) {
-                return res.status(400).json({ error: 'SLA phải lớn hơn 0 (SLA target days must be >= 0)' });
-            }
-            for (const key in config.sla.claimTypeSla) {
-                if (config.sla.claimTypeSla[key] < 0) {
-                    return res.status(400).json({ error: `SLA cho ${key} phải lớn hơn 0` });
-                }
-            }
+        const validationErr = validateTenantConfig(config);
+        if (validationErr) {
+            return res.status(400).json({ error: validationErr });
         }
 
         // Check unique slug
@@ -285,16 +312,9 @@ router.put('/tenants/:id', async (req, res) => {
             return res.status(400).json({ error: 'Vui lòng nhập lý do thay đổi (Change Note is required)' });
         }
 
-        // SLA validation (TC2.4)
-        if (config && config.sla) {
-            if (config.sla.defaultTargetDays < 0) {
-                return res.status(400).json({ error: 'SLA phải lớn hơn 0 (SLA target days must be >= 0)' });
-            }
-            for (const key in config.sla.claimTypeSla) {
-                if (config.sla.claimTypeSla[key] < 0) {
-                    return res.status(400).json({ error: `SLA cho ${key} phải lớn hơn 0` });
-                }
-            }
+        const validationErr = validateTenantConfig(config);
+        if (validationErr) {
+            return res.status(400).json({ error: validationErr });
         }
 
         // Update tenant name
