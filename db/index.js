@@ -15,18 +15,18 @@ const pool = new Pool(poolConfig);
 
 async function initDatabase() {
   try {
-    const res = await pool.query(`SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'tenants');`);
-    if (!res.rows[0].exists) {
-      console.log('⚡ Automatic cloud migration: initializing tables from init.sql...');
-      const sql = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
-      await pool.query(sql);
-      console.log('⚡ Database tables initialized successfully.');
-      
+    console.log('⚡ Automatic cloud migration: ensuring schema and tables from init.sql...');
+    const sql = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
+    await pool.query(sql);
+    console.log('⚡ Database schema verified successfully.');
+    
+    if (process.env.SEEDING_IN_PROGRESS !== 'true') {
       const countRes = await pool.query('SELECT COUNT(*) FROM tenants');
       if (Number(countRes.rows[0].count) === 0) {
         console.log('⚡ Automatic cloud migration: seeding initial sample tenants...');
+        process.env.SEEDING_IN_PROGRESS = 'true';
         const seedScript = require('../seed');
-        await seedScript.seed(false);
+        await seedScript.seed(false, pool);
       }
     }
   } catch (err) {

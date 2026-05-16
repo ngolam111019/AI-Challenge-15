@@ -1,26 +1,29 @@
 const db = require('./db');
 
-async function createTenant(slug, name, config, note = 'Initial configuration') {
-    const tenantRes = await db.query(
+async function createTenant(slug, name, config, note = 'Initial configuration', clientPool = null) {
+    const target = clientPool || db;
+    const tenantRes = await target.query(
         'INSERT INTO tenants (slug, name) VALUES ($1, $2) RETURNING id',
         [slug, name]
     );
     const tenantId = tenantRes.rows[0].id;
 
-    const configRes = await db.query(
+    const configRes = await target.query(
         'INSERT INTO tenant_configs (tenant_id, version_number, config_data, note) VALUES ($1, $2, $3, $4) RETURNING id',
         [tenantId, 1, JSON.stringify(config), note]
     );
     const configId = configRes.rows[0].id;
 
-    await db.query('UPDATE tenants SET current_version_id = $1 WHERE id = $2', [configId, tenantId]);
+    await target.query('UPDATE tenants SET current_version_id = $1 WHERE id = $2', [configId, tenantId]);
     return tenantId;
 }
 
-async function seed(isCLI = true) {
+async function seed(isCLI = true, clientPool = null) {
+    process.env.SEEDING_IN_PROGRESS = 'true';
+    const target = clientPool || db;
     try {
         console.log('Cleaning existing data...');
-        await db.query('TRUNCATE tenants, tenant_configs, claims RESTART IDENTITY CASCADE');
+        await target.query('TRUNCATE tenants, tenant_configs, claims RESTART IDENTITY CASCADE');
 
         console.log('Seeding 3 Specific Sample Tenants...');
 
@@ -66,7 +69,7 @@ async function seed(isCLI = true) {
                 number: [] 
             }
         };
-        await createTenant('safeguard', 'SafeGuard Insurance', tenantAConfig);
+        await createTenant('safeguard', 'SafeGuard Insurance', tenantAConfig, 'Initial configuration', target);
 
         // 2. Tenant B — "HealthFirst" (Retail)
         const tenantBConfig = {
@@ -108,7 +111,7 @@ async function seed(isCLI = true) {
             },
             customFields: { text: [], number: [] }
         };
-        await createTenant('healthfirst', 'HealthFirst', tenantBConfig);
+        await createTenant('healthfirst', 'HealthFirst', tenantBConfig, 'Initial configuration', target);
 
         // 3. Tenant C — "GovHealth" (Government)
         const tenantCConfig = {
@@ -152,7 +155,7 @@ async function seed(isCLI = true) {
                 number: [] 
             }
         };
-        await createTenant('govhealth', 'GovHealth', tenantCConfig);
+        await createTenant('govhealth', 'GovHealth', tenantCConfig, 'Initial configuration', target);
 
         console.log('Seeding completed successfully.');
         if (isCLI) process.exit(0);
