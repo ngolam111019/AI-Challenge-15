@@ -1,36 +1,40 @@
 # Module: Notifications
 
-Module này quản lý việc gửi thông báo tới khách hàng hoặc nhân viên dựa trên các sự kiện (Events).
+Module này quản lý cấu hình tự động gửi thông báo đa kênh tới khách hàng, chuyên viên hoặc hệ thống ERP nội bộ dựa trên các sự kiện vòng đời (Events).
 
-## 1. Các sự kiện hỗ trợ (Events)
-- `claim_submitted`: Khi hồ sơ vừa được gửi.
-- `approved`: Khi hồ sơ được phê duyệt.
-- `rejected`: Khi hồ sơ bị từ chối.
-- `payment_sent`: Khi tiền bồi thường đã được chuyển.
+## 1. Các sự kiện vòng đời (Lifecycle Events)
+- `claim_submitted`: Gửi ngay khi hồ sơ bồi thường được nộp.
+- `approved`: Kích hoạt khi hồ sơ được phê duyệt hoàn tất.
+- `rejected`: Kích hoạt khi hồ sơ bị từ chối.
+- `payment_sent`: Thông báo giải ngân thành công.
 
-## 2. Các kênh gửi (Channels)
-- `email`: Gửi qua dịch vụ SMTP/SendGrid.
-- `SMS`: Gửi qua Twilio/Stringee.
-- `webhook`: Gửi dữ liệu JSON tới một URL bên thứ ba.
+## 2. Các kênh gửi & Cấu hình chi tiết (Active Outbound Channels)
+Mỗi sự kiện cho phép bật/tắt linh hoạt 3 kênh thông báo sau:
+- `email`: Gửi thông báo qua dịch vụ Email Gateway. Cho phép chọn dùng **Default Template** hoặc điền **Custom Template ID** riêng của Tenant.
+- `sms`: Gửi thông báo qua SMS Gateway (Twilio/AWS SNS). Cho phép chọn dùng **Default SMS Template** hoặc điền mã mẫu tin nhắn riêng.
+- `webhook`: Tích hợp HTTP Webhook để đồng bộ thời gian thực với hệ thống Gov/ERP của doanh nghiệp. Cho phép điền trực tiếp **Custom Endpoint URL** để nhận JSON payload.
 
-## 3. Quản lý Templates
-Mỗi sự kiện có thể chọn:
-- **Default Template**: Mẫu chung của hệ thống.
-- **Custom Template**: Mẫu riêng dành cho từng Tenant.
-
-## 4. Schema ví dụ
+## 3. Schema ví dụ
 ```json
 "notifications": {
     "events": [
         { 
             "event": "claim_submitted", 
-            "channels": ["email"], 
-            "template": "standard_welcome_v1" 
-        },
-        { 
-            "event": "approved", 
-            "channels": ["email", "sms"], 
-            "template": "congrats_template" 
+            "channels": ["email", "webhook"],
+            "channelConfigs": {
+                "email": {
+                    "templateType": "custom",
+                    "customTemplateId": "sendgrid_corp_tpl_01"
+                },
+                "sms": {
+                    "templateType": "default",
+                    "customTemplateId": ""
+                },
+                "webhook": {
+                    "templateType": "custom",
+                    "customTemplateId": "https://api.govhealth.local/v1/sync/claims"
+                }
+            }
         }
     ]
 }

@@ -1,78 +1,117 @@
-<div class="space-y-6">
-    <div class="border-b border-slate-100 pb-4">
-        <h2 class="text-xl font-bold text-slate-900">SLA & Escalation Deadlines</h2>
-        <p class="text-sm text-slate-500">Configure working day deadlines for claim evaluation and auto-escalation pathways.</p>
+<div class="space-y-6" x-init="
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    if (!config.sla.workingDays || !Array.isArray(config.sla.workingDays)) {
+        config.sla.workingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    }
+    if (!config.sla.claimTypeSla || typeof config.sla.claimTypeSla !== 'object') {
+        config.sla.claimTypeSla = {};
+    }
+    config.claimTypes.forEach(ct => {
+        if (!config.sla.claimTypeSla[ct.id] || typeof config.sla.claimTypeSla[ct.id] !== 'object') {
+            let oldVal = config.sla.claimTypeSla[ct.id];
+            config.sla.claimTypeSla[ct.id] = {
+                targetDays: typeof oldVal === 'number' ? oldVal : 5,
+                escalations: []
+            };
+        }
+    });
+">
+    <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900">SLA & Escalation Deadlines</h2>
+            <p class="text-sm text-slate-500">Configure active working days in the week, per-claim resolution targets, and automated escalation notifications when processing is delayed.</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 font-bold flex items-center justify-center text-lg shadow-inner">
+            ⏱️
+        </div>
     </div>
 
-    <!-- Default SLA Target -->
-    <div class="p-6 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 max-w-xl shadow-2xs">
-        <div class="flex items-center space-x-3 mb-2">
-            <span class="text-2xl">⏱️</span>
-            <div>
-                <h3 class="font-bold text-slate-900">Default SLA Resolution Target</h3>
-                <p class="text-xs text-slate-500">Baseline working days allowed from claim submission to final determination.</p>
-            </div>
+    <!-- Working Days Configuration -->
+    <div class="bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-2xs max-w-4xl space-y-3">
+        <div class="flex items-center space-x-2">
+            <span>📅</span>
+            <h3 class="font-extrabold text-slate-900 text-sm uppercase tracking-wider">Active Working Days in Week</h3>
         </div>
-        <div class="mt-4 flex items-center space-x-3">
-            <input type="number" x-model.number="config.sla.defaultTargetDays" min="0" step="1" placeholder="5"
-                   class="w-32 px-4 py-2.5 rounded-xl border border-amber-300 font-bold text-lg text-amber-800 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
-            <span class="text-sm font-bold text-slate-600">Working Days</span>
+        <div class="flex flex-wrap gap-4 pt-1">
+            <template x-for="day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']" :key="day">
+                <label class="flex items-center space-x-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-2xs cursor-pointer select-none hover:border-blue-300 transition">
+                    <input type="checkbox" :value="day"
+                           :checked="config.sla.workingDays.includes(day)"
+                           @change="$event.target.checked ? config.sla.workingDays.push(day) : config.sla.workingDays = config.sla.workingDays.filter(d => d !== day)"
+                           class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer">
+                    <span class="text-xs font-extrabold text-slate-800" x-text="day"></span>
+                </label>
+            </template>
         </div>
-        <p class="text-xs text-rose-500 mt-1 font-semibold" x-show="config.sla.defaultTargetDays < 0">⚠️ SLA target days cannot be negative.</p>
     </div>
 
-    <!-- Claim Type Specific SLAs -->
-    <div class="space-y-4 max-w-2xl pt-4">
-        <h3 class="font-bold text-slate-800 text-lg">Specific Claim Type Override SLAs</h3>
-        <p class="text-xs text-slate-500">If configured, these values override the default SLA resolution target for specific claim categories.</p>
+    <!-- Claim Type Specific SLAs & Escalations -->
+    <div class="space-y-6 max-w-4xl pt-2">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 class="font-extrabold text-slate-900 text-lg">Per-Claim SLA Resolution & Escalations</h3>
+            <span class="text-xs text-slate-400 font-medium">Displaying only claim types currently enabled in Portal</span>
+        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-                <div>
-                    <span class="font-bold text-slate-800 text-sm">Outpatient Claims</span>
-                    <span class="block text-2xs font-mono text-slate-400">Key: OUTPATIENT</span>
-                </div>
-                <div class="flex items-center space-x-1">
-                    <input type="number" x-model.number="config.sla.claimTypeSla.OUTPATIENT" min="0" placeholder="Default"
-                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
-                    <span class="text-xs text-slate-500">days</span>
-                </div>
-            </div>
+        <div class="space-y-6">
+            <template x-for="ct in config.claimTypes.filter(c => c.enabled)" :key="ct.id">
+                <div class="p-6 bg-white rounded-3xl border border-slate-200 shadow-2xs space-y-4 hover:shadow-md transition border-l-4 border-l-blue-600">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl font-bold">🏥</span>
+                            <div>
+                                <h4 class="font-extrabold text-slate-900 text-lg" x-text="ct.name + ' Claims'"></h4>
+                                <span class="text-xs font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase font-bold" x-text="'Claim Code: ' + ct.id"></span>
+                            </div>
+                        </div>
 
-            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-                <div>
-                    <span class="font-bold text-slate-800 text-sm">Inpatient Claims</span>
-                    <span class="block text-2xs font-mono text-slate-400">Key: INPATIENT</span>
-                </div>
-                <div class="flex items-center space-x-1">
-                    <input type="number" x-model.number="config.sla.claimTypeSla.INPATIENT" min="0" placeholder="Default"
-                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
-                    <span class="text-xs text-slate-500">days</span>
-                </div>
-            </div>
+                        <div class="flex items-center space-x-3 bg-blue-50/60 px-4 py-2 rounded-2xl border border-blue-200/80">
+                            <label class="text-xs font-bold text-blue-900 uppercase tracking-wider">Target Processing Time:</label>
+                            <div class="flex items-center space-x-1 bg-white px-2 py-1 rounded-xl shadow-2xs border border-blue-200">
+                                <input type="number" x-model.number="config.sla.claimTypeSla[ct.id].targetDays" min="1" step="1"
+                                       class="w-16 bg-transparent text-center font-extrabold text-sm text-blue-700 focus:outline-none font-mono">
+                                <span class="text-xs font-bold text-slate-600">Days</span>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-                <div>
-                    <span class="font-bold text-slate-800 text-sm">Dental Claims</span>
-                    <span class="block text-2xs font-mono text-slate-400">Key: DENTAL</span>
-                </div>
-                <div class="flex items-center space-x-1">
-                    <input type="number" x-model.number="config.sla.claimTypeSla.DENTAL" min="0" placeholder="Default"
-                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
-                    <span class="text-xs text-slate-500">days</span>
-                </div>
-            </div>
+                    <!-- Dynamic Escalation Rules -->
+                    <div class="space-y-3 pt-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center space-x-1.5">
+                                <span>🚨 Automated Escalation Rules for Delayed Processing</span>
+                            </span>
+                            <button @click="config.sla.claimTypeSla[ct.id].escalations.push({ delayDays: 1, notifyRole: 'assessor' })" type="button"
+                                    class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center space-x-1">
+                                <span>➕ Add Escalation Rule</span>
+                            </button>
+                        </div>
 
-            <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-center justify-between">
-                <div>
-                    <span class="font-bold text-slate-800 text-sm">Maternity Claims</span>
-                    <span class="block text-2xs font-mono text-slate-400">Key: MATERNITY</span>
+                        <div class="space-y-2">
+                            <template x-for="(rule, rIdx) in config.sla.claimTypeSla[ct.id].escalations" :key="rIdx">
+                                <div class="flex items-center space-x-3 bg-rose-50/40 p-3 rounded-2xl border border-rose-200/80 text-xs">
+                                    <span class="font-bold text-rose-900">⚠️ If processing is delayed by</span>
+                                    <input type="number" x-model.number="rule.delayDays" min="1" step="1"
+                                           class="w-16 px-2 py-1 rounded-xl bg-white border border-rose-300 font-extrabold text-center text-rose-700 font-mono focus:outline-none">
+                                    <span class="font-bold text-rose-900">days past target, automatically notify:</span>
+                                    <select x-model="rule.notifyRole" class="flex-1 px-3 py-1.5 rounded-xl bg-white border border-rose-300 font-extrabold text-slate-800 focus:outline-none shadow-2xs">
+                                        <option value="assessor">Assessor</option>
+                                        <option value="team_lead">Team Lead</option>
+                                        <option value="director">Director</option>
+                                    </select>
+                                    <button @click="config.sla.claimTypeSla[ct.id].escalations.splice(rIdx, 1)" type="button" class="w-8 h-8 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold transition flex items-center justify-center">
+                                        ✕
+                                    </button>
+                                </div>
+                            </template>
+                            <div x-show="config.sla.claimTypeSla[ct.id].escalations.length === 0" class="p-4 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-300 text-slate-400 text-xs italic">
+                                No escalations configured for this claim type. Click "+ Add Escalation Rule" to set up notification alerts.
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                    <input type="number" x-model.number="config.sla.claimTypeSla.MATERNITY" min="0" placeholder="Default"
-                           class="w-20 px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-center text-sm font-bold focus:ring-2 focus:ring-blue-500">
-                    <span class="text-xs text-slate-500">days</span>
-                </div>
+            </template>
+            <div x-show="config.claimTypes.filter(c => c.enabled).length === 0" class="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 italic text-sm">
+                No claim types are currently enabled in the portal. Enable claim types in the "Claim Types" tab to configure their SLA targets and escalations.
             </div>
         </div>
     </div>

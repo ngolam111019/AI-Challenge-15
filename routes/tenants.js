@@ -5,21 +5,40 @@ const configService = require('../services/configService');
 const moduleRegistry = require('../services/moduleRegistry');
 
 const defaultConfig = {
-    branding: { companyName: '', primaryColor: '#2563eb' },
+    branding: { companyName: '', primaryColor: '#2563eb', secondaryColor: '#1e293b', logoUrl: '' },
     claimTypes: [
-        { id: 'OUTPATIENT', name: 'Outpatient', enabled: true, requiredDocs: ['ID', 'Medical Bill'] },
-        { id: 'INPATIENT', name: 'Inpatient', enabled: false, requiredDocs: ['ID', 'Hospital Statement'] },
-        { id: 'DENTAL', name: 'Dental', enabled: false, requiredDocs: ['ID'] }
+        { id: 'OUTPATIENT', name: 'Outpatient', enabled: true, requiredDocs: [{ name: 'ID Card', required: true }, { name: 'Medical Bill', required: true }] },
+        { id: 'INPATIENT', name: 'Inpatient', enabled: false, requiredDocs: [{ name: 'ID Card', required: true }, { name: 'Hospital Discharge Summary', required: true }] },
+        { id: 'DENTAL', name: 'Dental', enabled: false, requiredDocs: [{ name: 'ID Card', required: true }, { name: 'Dental Receipt', required: false }] },
+        { id: 'MATERNITY', name: 'Maternity', enabled: false, requiredDocs: [{ name: 'ID Card', required: true }, { name: 'Birth Certificate', required: true }] },
+        { id: 'OPTICAL', name: 'Optical', enabled: false, requiredDocs: [{ name: 'ID Card', required: true }, { name: 'Optometrist Prescription', required: false }] }
     ],
     approvalRules: {
         autoApproveThreshold: 5000,
         tiers: [
             { min: 5000, max: 50000, role: 'assessor' },
-            { min: 50000, max: 1000000000, role: 'manager' }
+            { min: 50000, max: 1000000000, role: 'team_lead' }
         ]
     },
-    notifications: { events: [{ event: 'claim_submitted', channels: ['email'], template: 'default_submit_tpl' }] },
-    sla: { defaultTargetDays: 5, claimTypeSla: { OUTPATIENT: 5 }, escalation: [] },
+    notifications: { 
+        events: [
+            { 
+                event: 'claim_submitted', 
+                channels: ['email'], 
+                channelConfigs: {
+                    email: { templateType: 'default', customTemplateId: '' },
+                    sms: { templateType: 'default', customTemplateId: '' },
+                    webhook: { templateType: 'custom', customTemplateId: 'https://api.erp.local/v1/claims/notify' }
+                }
+            }
+        ] 
+    },
+    sla: { 
+        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        claimTypeSla: { 
+            OUTPATIENT: { targetDays: 5, escalations: [{ delayDays: 1, notifyRole: 'assessor' }] }
+        }
+    },
     customFields: { text: [], number: [] }
 };
 

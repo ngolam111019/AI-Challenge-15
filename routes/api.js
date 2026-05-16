@@ -402,47 +402,61 @@ router.post('/preview/simulate', async (req, res) => {
         });
 
         const color = result.primaryColor;
+        const secColor = result.secondaryColor;
         const amtStr = `$${Number(result.amount).toLocaleString()}`;
         
-        let docsHtml = result.requiredDocuments.map(d => `<span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">📄 ${d}</span>`).join(' ') || '<span class="text-xs text-slate-400 italic">No specific documents required</span>';
+        let docsHtml = result.requiredDocuments.map(d => `
+            <span class="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold ${d.required ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 border border-slate-200'}">
+                📄 ${d.name} <span class="ml-2 px-2 py-0.5 rounded text-[10px] font-mono font-extrabold uppercase ${d.required ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-600'}">${d.required ? 'Mandatory' : 'Optional'}</span>
+            </span>`).join(' ') || '<span class="text-xs text-slate-400 italic">No verification documents required</span>';
         
         let notifHtml = result.notifications.map(n => `
-            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700">
-                <span class="flex items-center space-x-2"><span>📢 Event: ${n.event}</span></span>
-                <span class="font-mono bg-white px-2 py-0.5 rounded border border-slate-200">Channels: ${(n.channels||[]).join(', ')}</span>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-xs">
+                <div class="flex items-center justify-between font-bold text-slate-900 border-b border-slate-200/60 pb-2.5">
+                    <span class="flex items-center space-x-2.5"><span>📢 Lifecycle Event Hook:</span> <span class="font-mono bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded text-xs uppercase font-extrabold">${n.event}</span></span>
+                    <span class="bg-white px-3 py-1 rounded-xl border border-slate-200 font-extrabold text-slate-700 shadow-2xs">Active Channels: ${(n.channels||[]).join(', ')}</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    ${n.configs.map(c => `
+                        <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs font-medium space-y-1">
+                            <span class="font-extrabold uppercase text-slate-800 block text-xs flex items-center space-x-1">${c.channel === 'email' ? '<span>📧 Email Gateway</span>' : c.channel === 'sms' ? '<span>📱 SMS Dispatch</span>' : '<span>🌐 HTTP Webhook</span>'}</span>
+                            <span class="text-[11px] font-mono text-slate-600 block truncate">${c.detail}</span>
+                        </div>
+                    `).join('')}
+                </div>
             </div>`).join('') || '<span class="text-xs text-slate-400 italic">No notifications configured</span>';
 
         let fieldsHtml = result.customFieldValidation.map(f => `
-            <div class="flex items-center justify-between p-3 rounded-xl ${f.isValid ? 'bg-emerald-50/50 border border-emerald-200/80 text-emerald-900' : 'bg-rose-50 border-2 border-rose-400 text-rose-900 font-bold'} text-xs">
+            <div class="flex items-center justify-between p-3.5 rounded-2xl ${f.isValid ? 'bg-emerald-50/50 border border-emerald-200/80 text-emerald-900' : 'bg-rose-50 border-2 border-rose-400 text-rose-900 font-bold'} text-xs">
                 <div>
-                    <span class="font-semibold">${f.label}</span>
-                    <span class="text-[10px] uppercase font-mono ml-2 px-1.5 py-0.5 rounded ${f.required ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}">${f.required ? 'Required' : 'Optional'}</span>
+                    <span class="font-bold text-sm text-slate-900">${f.label}</span>
+                    <span class="text-[10px] uppercase font-mono font-extrabold ml-2 px-2 py-0.5 rounded ${f.required ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}">${f.required ? 'Required' : 'Optional'}</span>
                 </div>
                 <div>
-                    ${f.isValid ? `<span class="font-mono bg-white px-2 py-0.5 rounded shadow-2xs">${f.submittedValue || '(Empty)'}</span> ✅` : '<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">⚠️ Missing Required Field</span>'}
+                    ${f.isValid ? `<span class="font-mono bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs text-slate-800 font-bold">${f.submittedValue || '(Empty)'}</span> ✅` : '<span class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-lg font-extrabold">⚠️ Missing Required Field</span>'}
                 </div>
             </div>`).join('') || '<span class="text-xs text-slate-400 italic">No custom fields configured for this tenant</span>';
 
         let html = `
         <div class="space-y-6">
             <!-- Execution Banner -->
-            <div class="p-6 rounded-2xl text-white shadow-xl flex items-center justify-between" style="background-color: ${color}">
-                <div>
-                    <span class="text-[10px] font-mono tracking-wider uppercase opacity-80">Execution Pipeline Target</span>
-                    <h2 class="text-2xl font-extrabold mt-0.5">${result.tenantName}</h2>
+            <div class="p-8 rounded-3xl text-white shadow-xl flex items-center justify-between border border-white/10" style="background: linear-gradient(135deg, ${color}, ${secColor})">
+                <div class="space-y-1">
+                    <span class="text-xs font-mono font-extrabold tracking-wider uppercase bg-black/20 px-3 py-1 rounded-full backdrop-blur-md">Execution Pipeline Target</span>
+                    <h2 class="text-3xl font-extrabold">${result.tenantName}</h2>
                 </div>
                 <div class="text-right">
-                    <span class="text-xs font-semibold opacity-90 block">Simulated Claim</span>
-                    <span class="text-xl font-extrabold font-mono">${amtStr} (${result.claimType})</span>
+                    <span class="text-xs font-bold opacity-90 block tracking-wide uppercase">Simulated Claim Amount</span>
+                    <span class="text-2xl font-extrabold font-mono">${amtStr} (${result.claimType})</span>
                 </div>
             </div>
 
             <!-- Custom Field Errors Alert (if any) -->
             ${result.hasCustomFieldErrors ? `
-            <div class="p-4 rounded-xl bg-rose-500 text-white font-bold text-sm shadow-lg flex items-center space-x-3 animate-pulse">
-                <span class="text-2xl">⚠️</span>
+            <div class="p-5 rounded-2xl bg-rose-500 text-white font-bold text-sm shadow-lg flex items-center space-x-3 animate-pulse">
+                <span class="text-3xl">⚠️</span>
                 <div>
-                    <div class="text-base uppercase tracking-wide">Validation Error: Required Metadata Missing</div>
+                    <div class="text-base uppercase tracking-wider font-extrabold">Validation Error: Required Metadata Missing</div>
                     <div class="text-xs font-normal opacity-90">The claim cannot proceed to approval routing until all mandatory custom fields are populated.</div>
                 </div>
             </div>
@@ -451,54 +465,68 @@ router.post('/preview/simulate', async (req, res) => {
             <!-- Pipeline Cards Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Approval Matrix Routing -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
                     <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
                         <span>🛡️ Approval Routing Tier</span>
                     </div>
-                    <div class="p-4 rounded-xl ${result.approvalRouting.isAutoApprove ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold' : 'bg-purple-50 text-purple-800 border border-purple-200 font-bold'} flex items-center justify-between text-base">
+                    <div class="p-5 rounded-2xl ${result.approvalRouting.isAutoApprove ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold' : 'bg-purple-50 text-purple-800 border border-purple-200 font-bold'} flex items-center justify-between text-lg shadow-2xs">
                         <span>${result.approvalRouting.tier}</span>
-                        <span class="text-2xl">${result.approvalRouting.isAutoApprove ? '⚡' : '👥'}</span>
+                        <span class="text-3xl">${result.approvalRouting.isAutoApprove ? '⚡' : '👥'}</span>
                     </div>
                 </div>
 
-                <!-- SLA Tracker -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <!-- SLA Tracker & Escalations -->
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
                     <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                        <span>⏳ Expected SLA Resolution</span>
+                        <span>⏳ Expected SLA Resolution & Escalations</span>
                     </div>
-                    <div class="p-4 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex flex-col justify-center">
-                        <span class="text-xs font-semibold">Target: ${result.slaTargetDays} working days</span>
-                        <span class="text-lg font-extrabold font-mono mt-0.5">${result.slaDeadline}</span>
+                    <div class="p-4 rounded-2xl bg-blue-50 text-blue-800 border border-blue-200 flex flex-col justify-center space-y-1 shadow-2xs">
+                        <span class="text-xs font-semibold">Target Processing Time: ${result.slaTargetDays} working days</span>
+                        <span class="text-xl font-extrabold font-mono text-blue-900">${result.slaDeadline}</span>
+                        <span class="text-[11px] font-medium text-blue-900/80 pt-1 border-t border-blue-200/60 block truncate">
+                            Active Days in Week: ${(result.workingDays||[]).join(', ')}
+                        </span>
                     </div>
+                    ${result.escalations && result.escalations.length > 0 ? `
+                        <div class="pt-2 space-y-1.5">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-800 block">🚨 Auto-Escalation Pathways</span>
+                            ${result.escalations.map(esc => `
+                                <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200/80 text-xs font-bold text-rose-900 flex items-center justify-between shadow-2xs">
+                                    <span>If delayed by ${esc.delayDays}d past target:</span>
+                                    <span class="uppercase font-mono font-extrabold bg-white px-2.5 py-1 rounded shadow-2xs text-rose-700 border border-rose-200">Notify ${esc.notifyRole}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="text-[11px] text-slate-400 italic pt-1">No automatic escalations configured for this claim type</div>'}
                 </div>
             </div>
 
             <!-- Required Documentation -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
                 <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                    <span>📑 Mandatory Verification Documents</span>
+                    <span>📑 Verification Documents Required for Submission</span>
                 </div>
-                <div class="flex flex-wrap gap-2 pt-1">
+                <div class="flex flex-wrap gap-3 pt-1">
                     ${docsHtml}
                 </div>
             </div>
 
             <!-- Notifications Workflow -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
                 <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                    <span>🔔 Outbound Notification Channels</span>
+                    <span>🔔 Outbound Notification Channels & Templates</span>
                 </div>
-                <div class="space-y-2 pt-1">
+                <div class="space-y-3 pt-1">
                     ${notifHtml}
                 </div>
             </div>
 
             <!-- Custom Metadata Fields Verification -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
                 <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400">
                     <span>🏷️ Tenant-Specific Custom Metadata Validation</span>
                 </div>
-                <div class="space-y-2 pt-1">
+                <div class="space-y-2.5 pt-1">
                     ${fieldsHtml}
                 </div>
             </div>

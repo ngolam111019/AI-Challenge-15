@@ -5,63 +5,61 @@
     </div>
 
     <!-- Auto-approve Threshold -->
-    <div class="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 max-w-xl">
+    <div class="p-6 rounded-3xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 max-w-xl shadow-2xs">
         <div class="flex items-center space-x-3 mb-2">
             <span class="text-2xl">⚡</span>
             <div>
-                <h3 class="font-bold text-slate-900">Instant Auto-Approval Threshold</h3>
+                <h3 class="font-extrabold text-slate-900">Instant Auto-Approval Threshold</h3>
                 <p class="text-xs text-slate-500">Claims below this monetary amount bypass manual evaluation entirely.</p>
             </div>
         </div>
         <div class="mt-4 flex items-center space-x-2">
             <span class="text-lg font-extrabold text-slate-400">$</span>
             <input type="number" x-model.number="config.approvalRules.autoApproveThreshold" min="0" step="500" placeholder="20000"
-                   class="w-full px-4 py-2.5 rounded-xl border border-blue-200 font-bold text-lg text-blue-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-            <span class="text-sm font-bold text-slate-500">USD</span>
+                   class="w-full px-4 py-2.5 rounded-xl border border-blue-200 font-extrabold text-lg text-blue-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            <span class="text-sm font-extrabold text-slate-500">USD</span>
         </div>
-        <p class="text-xs text-slate-400 mt-2 italic">Set to 0 to require manual assessment for 100% of claims (e.g. Government tier).</p>
+        <p class="text-xs text-slate-400 mt-2 italic">Set to 0 to require manual assessment for 100% of claims.</p>
     </div>
 
     <!-- Tiers Management -->
     <div class="space-y-4 max-w-3xl pt-4">
         <div class="flex justify-between items-center">
-            <h3 class="font-bold text-slate-800 text-lg">Financial Escalation Tiers</h3>
+            <h3 class="font-extrabold text-slate-800 text-lg">Financial Escalation Tiers</h3>
             <button @click="config.approvalRules.tiers.push({ min: 0, max: 100000, role: 'assessor' })" type="button"
-                    class="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-sm flex items-center space-x-1">
-                <span>+ Add Routing Tier</span>
+                    class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-sm flex items-center space-x-1">
+                <span>➕ Add Routing Tier</span>
             </button>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
             <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
-                        <th class="px-6 py-3.5">Min Amount ($)</th>
-                        <th class="px-6 py-3.5">Max Amount ($)</th>
-                        <th class="px-6 py-3.5">Required Approver Role</th>
-                        <th class="px-6 py-3.5 text-right">Action</th>
+                        <th class="px-6 py-4">Min Amount ($)</th>
+                        <th class="px-6 py-4">Max Amount ($)</th>
+                        <th class="px-6 py-4">Required Approver Role</th>
+                        <th class="px-6 py-4 text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 font-medium">
                     <template x-for="(tier, idx) in config.approvalRules.tiers" :key="idx">
-                        <tr class="hover:bg-slate-50/50 transition">
-                            <td class="px-6 py-3">
-                                <input type="number" x-model.number="tier.min" min="0" step="1000" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-blue-500 text-sm">
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="px-6 py-3.5">
+                                <input type="number" x-model.number="tier.min" min="0" step="1000" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-semibold focus:ring-2 focus:ring-blue-500 text-sm">
                             </td>
-                            <td class="px-6 py-3">
-                                <input type="number" x-model.number="tier.max" min="0" step="1000" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-blue-500 text-sm">
+                            <td class="px-6 py-3.5">
+                                <input type="number" x-model.number="tier.max" min="0" step="1000" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-semibold focus:ring-2 focus:ring-blue-500 text-sm">
                             </td>
-                            <td class="px-6 py-3">
-                                <select x-model="tier.role" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 text-sm">
+                            <td class="px-6 py-3.5">
+                                <select x-model="tier.role" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-extrabold text-slate-800 focus:ring-2 focus:ring-blue-500 text-sm shadow-2xs">
                                     <option value="assessor">Assessor</option>
                                     <option value="team_lead">Team Lead</option>
-                                    <option value="manager">Manager</option>
                                     <option value="director">Director</option>
-                                    <option value="committee">Committee (Gov)</option>
                                 </select>
                             </td>
-                            <td class="px-6 py-3 text-right">
-                                <button @click="config.approvalRules.tiers.splice(idx, 1)" type="button" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Remove tier">
+                            <td class="px-6 py-3.5 text-right">
+                                <button @click="config.approvalRules.tiers.splice(idx, 1)" type="button" class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition text-lg" title="Remove tier">
                                     🗑️
                                 </button>
                             </td>
