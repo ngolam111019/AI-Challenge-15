@@ -1,0 +1,151 @@
+{% extends "layout.njk" %}
+
+{% block content %}
+<div class="space-y-8" 
+     x-data="{
+        tenantId: {{ tenant.id }},
+        selectedVerNum: null,
+        selectedDetails: null,
+        isDrawerOpen: false,
+
+        async openDetails(versionId, verNum) {
+            try {
+                const res = await fetch(`/api/tenants/${this.tenantId}/versions/${versionId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    this.selectedVerNum = verNum;
+                    try {
+                        const parsed = typeof data.config_data === 'string' ? JSON.parse(data.config_data) : data.config_data;
+                        this.selectedDetails = JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        this.selectedDetails = JSON.stringify(data.config_data, null, 2);
+                    }
+                    this.isDrawerOpen = true;
+                } else {
+                    Toast.fire({ icon: 'error', title: 'Could not load version details' });
+                }
+            } catch (e) {
+                Toast.fire({ icon: 'error', title: 'Network error' });
+            }
+        },
+
+        confirmRollback(versionId, verNum) {
+            Swal.fire({
+                title: `Rollback to Version v${verNum}?`,
+                html: `You are about to restore the configuration parameters from <b>v${verNum}</b>.<br><br><span class='text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded border border-amber-200'>GitHub-style: A new version record will be created. Old logs remain intact.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, execute rollback!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch(`/api/tenants/${this.tenantId}/rollback`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ targetVersionId: versionId })
+                        });
+                        if (res.ok) {
+                            document.body.dispatchEvent(new Event('refreshHistory'));
+                            Toast.fire({ icon: 'success', title: `Rolled back to v${verNum} successfully!` });
+                        } else {
+                            Toast.fire({ icon: 'error', title: 'Failed to rollback' });
+                        }
+                    } catch (e) {
+                        Toast.fire({ icon: 'error', title: 'Network error during rollback' });
+                    }
+                }
+            });
+        }
+     }">
+
+    <!-- Top Banner -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white rounded-3xl p-8 shadow-sm border border-slate-200 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="/tenants" class="text-sm font-bold text-slate-500 hover:text-blue-600 transition">← All Tenants</a>
+                <span class="text-slate-300">/</span>
+                <a href="/tenants/{{ tenant.id }}/edit" class="text-sm font-bold text-slate-500 hover:text-blue-600 transition">{{ tenant.name }}</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 uppercase tracking-wider">Version History</span>
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 mt-1">Configuration History & Logs</h1>
+            <p class="text-sm text-slate-500 mt-1">Immutable audit trail of all parameter changes, SLA updates, and version snapshots.</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <a href="/tenants/{{ tenant.id }}/edit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center space-x-2">
+                <span>✏️</span>
+                <span>Edit Current Version</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- History Table Container -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Version Timeline</span>
+            <span class="text-xs text-slate-400 font-medium">Ranked by version number (descending)</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Version</th>
+                        <th class="px-6 py-4">Commit Date</th>
+                        <th class="px-6 py-4">Change Note / Commit Message</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody hx-get="/api/tenants/{{ tenant.id }}/history-list" 
+                       hx-trigger="load, refreshHistory from:body" 
+                       class="divide-y divide-slate-100">
+                    <tr>
+                        <td colspan="5" class="p-12 text-center text-slate-400 italic">Loading version history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Drawer Modal for Details -->
+    <div x-show="isDrawerOpen" class="fixed inset-0 z-50 overflow-hidden" x-cloak>
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="isDrawerOpen = false"></div>
+        
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div class="w-screen max-w-2xl bg-white shadow-2xl flex flex-col transform transition-transform duration-300">
+                <!-- Drawer Header -->
+                <div class="px-8 py-6 bg-slate-900 text-white flex justify-between items-center shadow-lg">
+                    <div>
+                        <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">Snapshot Audit</span>
+                        <h2 class="text-2xl font-extrabold mt-0.5">Configuration v<span x-text="selectedVerNum"></span></h2>
+                    </div>
+                    <button @click="isDrawerOpen = false" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl transition">
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Drawer Body (JSON / Parameters) -->
+                <div class="flex-1 p-8 overflow-y-auto space-y-6 bg-slate-50/50">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs">
+                        <div class="flex items-center space-x-2 pb-4 border-b border-slate-100 mb-4">
+                            <span>📄</span>
+                            <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider">Raw Snapshot Data (JSON Schema)</h3>
+                        </div>
+                        <pre class="bg-slate-900 text-slate-200 p-6 rounded-xl font-mono text-xs overflow-x-auto max-h-[600px] shadow-inner"><code x-text="selectedDetails"></code></pre>
+                    </div>
+                </div>
+
+                <!-- Drawer Footer -->
+                <div class="px-8 py-5 border-t border-slate-200 bg-white flex justify-end">
+                    <button @click="isDrawerOpen = false" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl transition">
+                        Close Drawer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

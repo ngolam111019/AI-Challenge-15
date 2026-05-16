@@ -276,4 +276,95 @@ router.delete('/tenants/batch', async (req, res) => {
     }
 });
 
+// GET /api/tenants/:id/history-list - Table rows of version history
+router.get('/tenants/:id/history-list', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tenantRes = await db.query('SELECT current_version_id FROM tenants WHERE id = $1', [id]);
+        if (tenantRes.rows.length === 0) return res.send('<tr><td colspan="5">Tenant not found</td></tr>');
+        
+        const currentVersionId = tenantRes.rows[0].current_version_id;
+
+        const histRes = await db.query(`
+            SELECT id, version_number, created_at, note 
+            FROM tenant_configs 
+            WHERE tenant_id = $1 
+            ORDER BY version_number DESC
+        `, [id]);
+
+        if (histRes.rows.length === 0) {
+            return res.send('<tr><td colspan="5" class="p-8 text-center text-slate-400">No version history found.</td></tr>');
+        }
+
+        let html = '';
+        histRes.rows.forEach(r => {
+            const isActive = r.id === currentVersionId;
+            const dateStr = new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            
+            html += `
+            <tr class="hover:bg-slate-50 transition ${isActive ? 'bg-emerald-50/40 font-semibold' : ''}">
+                <td class="px-6 py-4 whitespace-nowrap font-mono text-sm font-bold text-slate-900">
+                    v${r.version_number}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    ${dateStr}
+                </td>
+                <td class="px-6 py-4 text-sm text-slate-800 font-medium">
+                    ${r.note || '<span class="text-slate-400 italic">No commit message</span>'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    ${isActive ? '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Current ⭐</span>' : '<span class="text-xs text-slate-400">Archived</span>'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <button @click="openDetails(${r.id}, ${r.version_number})" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition">
+                        📄 Details
+                    </button>
+                    ${!isActive ? `
+                    <button @click="confirmRollback(${r.id}, ${r.version_number})" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition">
+                        🔄 Rollback
+                    </button>
+                    ` : '<span class="inline-block px-3 py-1.5 text-xs text-slate-300 font-mono">Active</span>'}
+                </td>
+            </tr>`;
+        });
+
+        res.send(html);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('<tr><td colspan="5" class="text-rose-500">Error loading history</td></tr>');
+    }
+});
+
+// GET /api/tenants/:id/versions/:versionId - Get specific version snapshot
+router.get('/tenants/:id/versions/:versionId', async (req, res) => {
+    try {
+        const { id, versionId } = req.params;
+        const vRes = await db.query('SELECT config_data, version_number, created_at, note FROM tenant_configs WHERE id = $1 AND tenant_id = $2', [versionId, id]);
+        if (vRes.rows.length === 0) return res.status(404).json({ error: 'Version not found' });
+        res.json(vRes.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// POST /api/tenants/:id/rollback - Rollback to version
+router.post('/tenants/:id/rollback', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { targetVersionId } = req.body;
+        
+        const newVersionId = await configService.rollback(id, targetVersionId);
+        const vRes = await db.query('SELECT version_number FROM tenant_configs WHERE id = $1', [newVersionId]);
+        
+        res.setHeader('HX-Trigger', JSON.stringify({ 
+            showToast: { message: `Successfully rolled back to version v${vRes.rows[0].version_number}!`, type: 'success' },
+            refreshHistory: true 
+        }));
+        res.json({ success: true, newVersionNumber: vRes.rows[0].version_number });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Rollback failed' });
+    }
+});
+
 module.exports = router;
