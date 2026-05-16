@@ -36,12 +36,25 @@ class RuntimeService {
         }
 
         // 3. Notifications
-        const events = config.notifications?.events || [];
-        const notifications = events.map(e => {
-            let configs = e.channelConfigs || {};
-            let activeChannels = e.channels || [];
+        const defaultEvents = ['claim_submitted', 'approved', 'rejected', 'payment_sent'];
+        const existingEvents = config.notifications?.events || [];
+        const notifications = defaultEvents.map(ev => {
+            let found = existingEvents.find(e => e.event === ev);
+            if (!found) {
+                found = {
+                    event: ev,
+                    channels: ['email'],
+                    channelConfigs: {
+                        email: { templateType: 'default', customTemplateId: '' },
+                        sms: { templateType: 'default', customTemplateId: '' },
+                        webhook: { templateType: 'default', customTemplateId: '' }
+                    }
+                };
+            }
+            let configs = found.channelConfigs || {};
+            let activeChannels = found.channels || ['email'];
             return {
-                event: e.event,
+                event: found.event,
                 channels: activeChannels,
                 configs: activeChannels.map(ch => {
                     let cfg = configs[ch] || { templateType: 'default', customTemplateId: '' };

@@ -30,6 +30,33 @@ const defaultConfig = {
                     sms: { templateType: 'default', customTemplateId: '' },
                     webhook: { templateType: 'custom', customTemplateId: 'https://api.erp.local/v1/claims/notify' }
                 }
+            },
+            { 
+                event: 'approved', 
+                channels: ['email', 'sms'], 
+                channelConfigs: {
+                    email: { templateType: 'default', customTemplateId: '' },
+                    sms: { templateType: 'default', customTemplateId: '' },
+                    webhook: { templateType: 'default', customTemplateId: '' }
+                }
+            },
+            { 
+                event: 'rejected', 
+                channels: ['email'], 
+                channelConfigs: {
+                    email: { templateType: 'default', customTemplateId: '' },
+                    sms: { templateType: 'default', customTemplateId: '' },
+                    webhook: { templateType: 'default', customTemplateId: '' }
+                }
+            },
+            { 
+                event: 'payment_sent', 
+                channels: ['email', 'webhook'], 
+                channelConfigs: {
+                    email: { templateType: 'default', customTemplateId: '' },
+                    sms: { templateType: 'default', customTemplateId: '' },
+                    webhook: { templateType: 'default', customTemplateId: '' }
+                }
             }
         ] 
     },
