@@ -42,7 +42,12 @@ router.get('/new', (req, res) => {
 // GET /tenants/diff - Config diff screen
 router.get('/diff', async (req, res) => {
     const { id1, id2 } = req.query;
-    res.render('tenants/diff', { title: 'Config Diff Comparison', id1, id2 });
+    try {
+        const tenantsRes = await db.query('SELECT id, name, slug FROM tenants ORDER BY name');
+        res.render('tenants/diff', { title: 'Config Diff Comparison', id1, id2, tenants: tenantsRes.rows });
+    } catch (e) {
+        res.status(500).send('Error loading tenants');
+    }
 });
 
 // GET /tenants/preview - Preview / Simulation sandbox screen

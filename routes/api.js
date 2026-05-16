@@ -61,6 +61,83 @@ router.get('/tenants', async (req, res) => {
     }
 });
 
+// GET /api/tenants/diff-data
+router.get('/tenants/diff-data', async (req, res) => {
+    const { id1, id2 } = req.query;
+    if (!id1 || !id2) {
+        return res.send(`<tr><td colspan="3" class="p-12 text-center text-slate-400">Please select both Tenant A and Tenant B above to compare configurations.</td></tr>`);
+    }
+
+    try {
+        const t1Res = await db.query('SELECT name, slug FROM tenants WHERE id = $1', [id1]);
+        const t2Res = await db.query('SELECT name, slug FROM tenants WHERE id = $2', [id2]);
+        if (t1Res.rows.length === 0 || t2Res.rows.length === 0) return res.send('<tr><td colspan="3" class="p-8 text-center text-rose-500">Tenant not found</td></tr>');
+
+        const t1 = t1Res.rows[0];
+        const t2 = t2Res.rows[0];
+
+        const cfg1Res = await configService.getLatestConfig(id1);
+        const cfg2Res = await configService.getLatestConfig(id2);
+
+        const c1 = cfg1Res ? cfg1Res.config_data : {};
+        const c2 = cfg2Res ? cfg2Res.config_data : {};
+
+        // Helper to format rows
+        const makeRow = (label, val1, val2, isCode = false) => {
+            const v1Str = typeof val1 === 'object' ? JSON.stringify(val1) : String(val1 ?? '(None)');
+            const v2Str = typeof val2 === 'object' ? JSON.stringify(val2) : String(val2 ?? '(None)');
+            const isDiff = v1Str !== v2Str;
+            const diffClass = isDiff ? 'bg-amber-50/90 font-semibold border-l-4 border-amber-500 text-amber-900 is-diff-row' : 'hover:bg-slate-50 text-slate-700';
+            const badge = isDiff ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-800">[≠] Diff</span>' : '';
+
+            return `
+            <tr class="transition ${diffClass}">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900 flex items-center justify-between">
+                    <span>${label}</span>
+                    ${badge}
+                </td>
+                <td class="px-6 py-4 text-sm ${isCode ? 'font-mono text-xs bg-white px-2 py-1 rounded border border-slate-200 inline-block mt-1' : ''} ${v1Str === '(None)' ? 'text-slate-400 italic' : ''}">${v1Str}</td>
+                <td class="px-6 py-4 text-sm ${isCode ? 'font-mono text-xs bg-white px-2 py-1 rounded border border-slate-200 inline-block mt-1' : ''} ${v2Str === '(None)' ? 'text-slate-400 italic' : ''}">${v2Str}</td>
+            </tr>`;
+        };
+
+        const claims1 = (c1.claimTypes || []).filter(c=>c.enabled).map(c=>c.id).join(', ') || '(None)';
+        const claims2 = (c2.claimTypes || []).filter(c=>c.enabled).map(c=>c.id).join(', ') || '(None)';
+
+        const auto1 = `$ ${(c1.approvalRules?.autoApproveThreshold ?? 0).toLocaleString()}`;
+        const auto2 = `$ ${(c2.approvalRules?.autoApproveThreshold ?? 0).toLocaleString()}`;
+
+        const tiers1 = `${c1.approvalRules?.tiers?.length ?? 0} Tiers (${(c1.approvalRules?.tiers ?? []).map(t=>t.role).join(', ')})`;
+        const tiers2 = `${c2.approvalRules?.tiers?.length ?? 0} Tiers (${(c2.approvalRules?.tiers ?? []).map(t=>t.role).join(', ')})`;
+
+        const notif1 = (c1.notifications?.events?.[0]?.channels || []).join(', ') || '(None)';
+        const notif2 = (c2.notifications?.events?.[0]?.channels || []).join(', ') || '(None)';
+
+        const sla1 = `${c1.sla?.defaultTargetDays ?? 5} working days`;
+        const sla2 = `${c2.sla?.defaultTargetDays ?? 5} working days`;
+
+        const fields1 = (c1.customFields?.text || []).map(f=>f.label).join(', ') || '(None)';
+        const fields2 = (c2.customFields?.text || []).map(f=>f.label).join(', ') || '(None)';
+
+        let html = `
+            ${makeRow('Company Registered Name', t1.name, t2.name)}
+            ${makeRow('Unique Slug Identifier', t1.slug, t2.slug, true)}
+            ${makeRow('Primary Brand Color', c1.branding?.primaryColor ?? '#2563eb', c2.branding?.primaryColor ?? '#2563eb', true)}
+            ${makeRow('Supported Claim Types', claims1, claims2)}
+            ${makeRow('Auto-Approval Threshold', auto1, auto2)}
+            ${makeRow('Approval Matrix Tiers', tiers1, tiers2)}
+            ${makeRow('Notification Channels', notif1, notif2)}
+            ${makeRow('Default SLA Target Days', sla1, sla2)}
+            ${makeRow('Required Custom Metadata Fields', fields1, fields2)}
+        `;
+
+        res.send(html);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('<tr><td colspan="3" class="p-8 text-center text-rose-500 font-bold">Error loading diff data</td></tr>');
+    }
+});
+
 // POST /api/tenants - Create new tenant
 router.post('/tenants', async (req, res) => {
     try {
