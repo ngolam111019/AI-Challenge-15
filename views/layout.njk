@@ -89,13 +89,16 @@
 
         // Intercept HTMX confirmation dialogs to use beautiful SweetAlert2
         document.addEventListener('htmx:confirm', function(evt) {
+            if (!evt.detail.question) {
+                return; // Let standard requests proceed normally without popup
+            }
             evt.preventDefault();
             Swal.fire({
-                title: 'Are you sure?',
-                text: evt.detail.question || "This action cannot be undone.",
+                title: 'Confirmation Required',
+                text: evt.detail.question,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#2563eb',
+                confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'Yes, proceed!'
             }).then((result) => {
