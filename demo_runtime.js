@@ -6,7 +6,12 @@ async function demo() {
         const tenantsRes = await db.query('SELECT id, slug, name FROM tenants ORDER BY id ASC');
         const claimData = {
             claimType: 'OUTPATIENT',
-            amount: 10000 // Same amount for all
+            amount: 10000, // Same amount for all
+            customFields: {
+                employee_id: 'EMP-99182',
+                dept: 'Engineering Department',
+                budget_code: 'BGT-2026-X9'
+            }
         };
 
         console.log('--- RUNTIME DEMONSTRATION ---');
