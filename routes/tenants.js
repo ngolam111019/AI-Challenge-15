@@ -84,7 +84,7 @@ router.get('/preview', async (req, res) => {
 router.get('/:id/history', async (req, res) => {
     const { id } = req.params;
     try {
-        const tenantRes = await db.query('SELECT * FROM tenants WHERE id = $1', [id]);
+        const tenantRes = await db.query('SELECT * FROM tenants WHERE id = $1::int', [Number(id)]);
         if (tenantRes.rows.length === 0) return res.status(404).send('Tenant not found');
         res.render('tenants/history', { 
             title: `History: ${tenantRes.rows[0].name}`, 
@@ -101,7 +101,7 @@ router.get('/:id/history', async (req, res) => {
 router.get('/:id/edit', async (req, res) => {
     const { id } = req.params;
     try {
-        const tenantRes = await db.query('SELECT * FROM tenants WHERE id = $1', [id]);
+        const tenantRes = await db.query('SELECT * FROM tenants WHERE id = $1::int', [Number(id)]);
         if (tenantRes.rows.length === 0) return res.status(404).send('Tenant not found');
         
         const tenant = tenantRes.rows[0];

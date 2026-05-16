@@ -69,8 +69,8 @@ router.get('/tenants/diff-data', async (req, res) => {
     }
 
     try {
-        const t1Res = await db.query('SELECT name, slug FROM tenants WHERE id = $1', [id1]);
-        const t2Res = await db.query('SELECT name, slug FROM tenants WHERE id = $2', [id2]);
+        const t1Res = await db.query('SELECT name, slug FROM tenants WHERE id = $1::int', [Number(id1)]);
+        const t2Res = await db.query('SELECT name, slug FROM tenants WHERE id = $1::int', [Number(id2)]);
         if (t1Res.rows.length === 0 || t2Res.rows.length === 0) return res.send('<tr><td colspan="3" class="p-8 text-center text-rose-500">Tenant not found</td></tr>');
 
         const t1 = t1Res.rows[0];
@@ -160,14 +160,14 @@ router.post('/tenants', async (req, res) => {
         }
 
         // Check unique slug
-        const slugCheck = await db.query('SELECT id FROM tenants WHERE slug = $1', [slug]);
+        const slugCheck = await db.query('SELECT id FROM tenants WHERE slug = $1::text', [slug]);
         if (slugCheck.rows.length > 0) {
             return res.status(400).json({ error: 'Tenant Slug already exists. Please choose another.' });
         }
 
         // Insert tenant
         const tenantRes = await db.query(
-            'INSERT INTO tenants (slug, name) VALUES ($1, $2) RETURNING id',
+            'INSERT INTO tenants (slug, name) VALUES ($1::text, $2::text) RETURNING id',
             [slug, name]
         );
         const tenantId = tenantRes.rows[0].id;
@@ -211,13 +211,13 @@ router.put('/tenants/:id', async (req, res) => {
         }
 
         // Update tenant name
-        await db.query('UPDATE tenants SET name = $1 WHERE id = $2', [name, id]);
+        await db.query('UPDATE tenants SET name = $1::text WHERE id = $2::int', [name, Number(id)]);
 
         // Create new version
         const newConfigId = await configService.createNewVersion(id, config || {}, changeNote);
         
         // Get new version number
-        const vRes = await db.query('SELECT version_number FROM tenant_configs WHERE id = $1', [newConfigId]);
+        const vRes = await db.query('SELECT version_number FROM tenant_configs WHERE id = $1::int', [Number(newConfigId)]);
         const newVersionNumber = vRes.rows[0].version_number;
 
         res.json({ 
@@ -235,7 +235,7 @@ router.put('/tenants/:id', async (req, res) => {
 router.delete('/tenants/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        await db.query('DELETE FROM tenants WHERE id = $1', [id]);
+        await db.query('DELETE FROM tenants WHERE id = $1::int', [Number(id)]);
         res.setHeader('HX-Trigger', JSON.stringify({ showToast: { message: 'Tenant deleted successfully!', type: 'success' } }));
         res.send(''); 
     } catch (err) {
@@ -256,7 +256,7 @@ router.delete('/tenants/batch', async (req, res) => {
         try {
             await client.query('BEGIN');
             for (const id of ids) {
-                await client.query('DELETE FROM tenants WHERE id = $1', [id]);
+                await client.query('DELETE FROM tenants WHERE id = $1::int', [Number(id)]);
             }
             await client.query('COMMIT');
             res.setHeader('HX-Trigger', JSON.stringify({ 
@@ -280,7 +280,7 @@ router.delete('/tenants/batch', async (req, res) => {
 router.get('/tenants/:id/history-list', async (req, res) => {
     try {
         const { id } = req.params;
-        const tenantRes = await db.query('SELECT current_version_id FROM tenants WHERE id = $1', [id]);
+        const tenantRes = await db.query('SELECT current_version_id FROM tenants WHERE id = $1::int', [Number(id)]);
         if (tenantRes.rows.length === 0) return res.send('<tr><td colspan="5">Tenant not found</td></tr>');
         
         const currentVersionId = tenantRes.rows[0].current_version_id;
@@ -288,9 +288,9 @@ router.get('/tenants/:id/history-list', async (req, res) => {
         const histRes = await db.query(`
             SELECT id, version_number, created_at, note 
             FROM tenant_configs 
-            WHERE tenant_id = $1 
+            WHERE tenant_id = $1::int 
             ORDER BY version_number DESC
-        `, [id]);
+        `, [Number(id)]);
 
         if (histRes.rows.length === 0) {
             return res.send('<tr><td colspan="5" class="p-8 text-center text-slate-400">No version history found.</td></tr>');
@@ -339,7 +339,7 @@ router.get('/tenants/:id/history-list', async (req, res) => {
 router.get('/tenants/:id/versions/:versionId', async (req, res) => {
     try {
         const { id, versionId } = req.params;
-        const vRes = await db.query('SELECT config_data, version_number, created_at, note FROM tenant_configs WHERE id = $1 AND tenant_id = $2', [versionId, id]);
+        const vRes = await db.query('SELECT config_data, version_number, created_at, note FROM tenant_configs WHERE id = $1::int AND tenant_id = $2::int', [Number(versionId), Number(id)]);
         if (vRes.rows.length === 0) return res.status(404).json({ error: 'Version not found' });
         res.json(vRes.rows[0]);
     } catch (err) {
@@ -354,7 +354,7 @@ router.post('/tenants/:id/rollback', async (req, res) => {
         const { targetVersionId } = req.body;
         
         const newVersionId = await configService.rollback(id, targetVersionId);
-        const vRes = await db.query('SELECT version_number FROM tenant_configs WHERE id = $1', [newVersionId]);
+        const vRes = await db.query('SELECT version_number FROM tenant_configs WHERE id = $1::int', [Number(newVersionId)]);
         
         res.setHeader('HX-Trigger', JSON.stringify({ 
             showToast: { message: `Successfully rolled back to version v${vRes.rows[0].version_number}!`, type: 'success' },

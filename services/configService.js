@@ -2,11 +2,12 @@ const db = require('../db');
 
 class ConfigService {
     async getLatestConfig(tenantId) {
+        if (!tenantId || isNaN(tenantId)) return null;
         const res = await db.query(`
             SELECT tc.* FROM tenant_configs tc
             JOIN tenants t ON t.current_version_id = tc.id
-            WHERE t.id = $1
-        `, [tenantId]);
+            WHERE t.id = $1::int
+        `, [Number(tenantId)]);
         return res.rows[0];
     }
 
@@ -17,22 +18,22 @@ class ConfigService {
             
             // Get latest version number
             const versionRes = await client.query(
-                'SELECT COALESCE(MAX(version_number), 0) as max_v FROM tenant_configs WHERE tenant_id = $1',
-                [tenantId]
+                'SELECT COALESCE(MAX(version_number), 0) as max_v FROM tenant_configs WHERE tenant_id = $1::int',
+                [Number(tenantId)]
             );
-            const nextVersion = versionRes.rows[0].max_v + 1;
+            const nextVersion = Number(versionRes.rows[0].max_v) + 1;
 
             // Insert new config with note
             const insertRes = await client.query(
-                'INSERT INTO tenant_configs (tenant_id, version_number, config_data, note) VALUES ($1, $2, $3, $4) RETURNING id',
-                [tenantId, nextVersion, JSON.stringify(newConfigData), note]
+                'INSERT INTO tenant_configs (tenant_id, version_number, config_data, note) VALUES ($1::int, $2::int, $3::jsonb, $4::text) RETURNING id',
+                [Number(tenantId), nextVersion, JSON.stringify(newConfigData), note]
             );
             const newConfigId = insertRes.rows[0].id;
 
             // Update current version in tenant table
             await client.query(
-                'UPDATE tenants SET current_version_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-                [newConfigId, tenantId]
+                'UPDATE tenants SET current_version_id = $1::int, updated_at = CURRENT_TIMESTAMP WHERE id = $2::int',
+                [Number(newConfigId), Number(tenantId)]
             );
 
             await client.query('COMMIT');
@@ -48,8 +49,8 @@ class ConfigService {
     async rollback(tenantId, targetVersionId) {
         // GitHub-style: Fetch the old config and create a NEW version record from it
         const targetRes = await db.query(
-            'SELECT config_data, version_number FROM tenant_configs WHERE id = $1 AND tenant_id = $2',
-            [targetVersionId, tenantId]
+            'SELECT config_data, version_number FROM tenant_configs WHERE id = $1::int AND tenant_id = $2::int',
+            [Number(targetVersionId), Number(tenantId)]
         );
         
         if (targetRes.rows.length === 0) throw new Error('Target version not found');
