@@ -36,13 +36,14 @@ class RuntimeService {
         }
 
         // 3. Notifications
-        const events = config.notifications.events ? config.notifications.events.filter(e => e.event === 'claim_submitted') : [];
+        const events = config.notifications?.events || [];
         const notifications = events.map(e => {
             let configs = e.channelConfigs || {};
+            let activeChannels = e.channels || [];
             return {
                 event: e.event,
-                channels: e.channels,
-                configs: e.channels.map(ch => {
+                channels: activeChannels,
+                configs: activeChannels.map(ch => {
                     let cfg = configs[ch] || { templateType: 'default', customTemplateId: '' };
                     let tplStr = cfg.templateType === 'custom' ? `Custom Endpoint/ID: ${cfg.customTemplateId}` : 'Default System Template';
                     return { channel: ch, detail: tplStr };
@@ -56,8 +57,18 @@ class RuntimeService {
         const escalations = slaObj.escalations || [];
         const workingDays = config.sla?.workingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         
-        const submissionDate = DateTime.now();
-        const deadline = submissionDate.plus({ days: Number(slaDays) }).toFormat('MMMM dd, yyyy');
+        let currentDate = DateTime.now();
+        let daysAdded = 0;
+        const targetCount = Number(slaDays);
+        if (workingDays.length > 0 && targetCount > 0) {
+            while (daysAdded < targetCount) {
+                currentDate = currentDate.plus({ days: 1 });
+                if (workingDays.includes(currentDate.weekdayLong)) {
+                    daysAdded++;
+                }
+            }
+        }
+        const deadline = currentDate.toFormat('MMMM dd, yyyy');
 
         // 5. Custom Fields Validation
         const allCustomFields = config.customFields?.text ? config.customFields.text.filter(f => f.enabled) : [];
