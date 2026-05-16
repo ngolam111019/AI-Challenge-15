@@ -45,9 +45,9 @@
             });
         },
         batchCompare() {
-            if (this.selected.length < 1) return;
+            if (this.selected.length !== 2) return;
             const id1 = this.selected[0];
-            const id2 = this.selected.length > 1 ? this.selected[1] : this.selected[0];
+            const id2 = this.selected[1];
             window.location.href = `/tenants/diff?id1=${id1}&id2=${id2}`;
         }
      }">
@@ -70,11 +70,11 @@
             </button>
 
             <button @click="batchCompare()" 
-                    :disabled="selected.length < 1" 
-                    :class="selected.length < 1 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700 shadow-md shadow-purple-600/20'"
+                    :disabled="selected.length !== 2" 
+                    :class="selected.length !== 2 ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700 shadow-md shadow-purple-600/20'"
                     class="px-4 py-2.5 rounded-xl font-medium text-sm transition border flex items-center space-x-2">
                 <span>⚖️</span>
-                <span>Compare (<span x-text="selected.length">0</span>)</span>
+                <span>Compare (<span x-text="selected.length">0</span>/2)</span>
             </button>
 
             <a href="/tenants/new" class="px-5 py-2.5 bg-blue-600 rounded-xl font-medium text-sm text-white hover:bg-blue-500 transition shadow-lg shadow-blue-500/30 flex items-center space-x-2">

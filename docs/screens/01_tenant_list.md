@@ -22,9 +22,9 @@ Nằm ở phía trên cùng bên phải, bao gồm các nút:
   - Trạng thái kích hoạt: Khi có ít nhất 1 checkbox trên lưới được tích chọn.
   - Tương tác: Nhấn vào sẽ hiển thị Modal / SweetAlert yêu cầu xác nhận. Khi đồng ý, HTMX thực hiện gọi API `DELETE /api/tenants/batch` và làm mới bảng dữ liệu tức thì với hiệu ứng fade-out.
 - **`⚖️ Compare Selected`**:
-  - Trạng thái mặc định: Bị vô hiệu hóa.
-  - Trạng thái kích hoạt: Khi có **chính xác 2 checkbox** hoặc **ít nhất 1 checkbox** được chọn.
-  - Tương tác: Khi nhấn vào, hệ thống trích xuất các ID đã chọn và chuyển hướng tới màn hình so sánh với query params: `/tenants/diff?id1=1&id2=2`.
+  - Trạng thái mặc định: Bị vô hiệu hóa (`disabled: true`).
+  - Trạng thái kích hoạt: Chỉ bật khi có **chính xác 2 checkbox** trên lưới được chọn (`selected.length === 2`). Hiển thị nhãn trực quan `Compare (2/2)`.
+  - Tương tác: Khi nhấn vào, hệ thống trích xuất 2 ID đã chọn và chuyển hướng tới màn hình so sánh với query params: `/tenants/diff?id1=1&id2=2`.
 
 ## 2. Lưới Dữ liệu (Data Grid)
 Bảng hiển thị theo phong cách hiện đại (Clean Table) với các cột:

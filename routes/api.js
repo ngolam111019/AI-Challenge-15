@@ -318,19 +318,6 @@ router.put('/tenants/:id', async (req, res) => {
     }
 });
 
-// DELETE /api/tenants/:id - Delete single tenant
-router.delete('/tenants/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        await db.query('DELETE FROM tenants WHERE id = $1::int', [Number(id)]);
-        res.setHeader('HX-Trigger', JSON.stringify({ showToast: { message: 'Tenant deleted successfully!', type: 'success' } }));
-        res.send(''); 
-    } catch (err) {
-        console.error('Delete error:', err);
-        res.status(500).send('<span class="text-rose-500">Error deleting tenant</span>');
-    }
-});
-
 // DELETE /api/tenants/batch - Delete multiple tenants
 router.delete('/tenants/batch', async (req, res) => {
     try {
@@ -360,6 +347,19 @@ router.delete('/tenants/batch', async (req, res) => {
     } catch (err) {
         console.error('Batch delete error:', err);
         res.status(500).send('Error deleting tenants');
+    }
+});
+
+// DELETE /api/tenants/:id - Delete single tenant
+router.delete('/tenants/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.query('DELETE FROM tenants WHERE id = $1::int', [Number(id)]);
+        res.setHeader('HX-Trigger', JSON.stringify({ showToast: { message: 'Tenant deleted successfully!', type: 'success' } }));
+        res.send(''); 
+    } catch (err) {
+        console.error('Delete error:', err);
+        res.status(500).send('<span class="text-rose-500">Error deleting tenant</span>');
     }
 });
 
