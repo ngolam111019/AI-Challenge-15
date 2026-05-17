@@ -1,17 +1,21 @@
-# TỔNG HỢP NỘI DUNG CHUYÊN SÂU & KHỞI ĐỘNG
+# PHẦN TRẢ LỜI CÂU HỎI LOGICAL
 
 ## 1. Q14 — Thiết kế cánh cửa ra vào tốt nhất cho nhà vệ sinh Nam công cộng [O, D] (Chuyên sâu)
 
-Quyết định đầu tiên là tôi sẽ bỏ qua ý tưởng lắp cửa cho nhà vệ sinh nam công cộng. Tôi sẽ thiết kế cửa dạng vách ngăn giống chữ Z (ziczac).
+Quyết định đầu tiên là tôi sẽ bỏ qua ý tưởng lắp cửa cho nhà vệ sinh nam công cộng. Tôi sẽ thiết kế cửa dạng tường hoặc vách ngăn giống chữ Z (ziczac).
 
 **Vì sao?**
-Trải nghiệm thực tế khi sử dụng các nhà vệ sinh ở quán nhậu, trạm dừng, họ dùng cửa nhôm che tầm mắt mở 2 chiều, có những chỗ dùng tấm nhựa xếp lớp để làm màn. Nó luôn luôn ở tình trạng ẩm ướt, bám bẩn, tạo cảm giác ngại khi chạm vào.
+Trải nghiệm thực tế khi sử dụng các nhà vệ sinh ở quán nhậu, trạm dừng chân, họ dùng cửa nhôm che tầm mắt mở 2 chiều, có những chỗ dùng tấm nhựa xếp lớp để làm màn. Nó luôn luôn ở tình trạng ẩm ướt, bám bẩn, tạo cảm giác ngại khi chạm vào.
 
-Tôi thấy cách xây cửa dạng chữ ziczac này rất hay, nó được áp dụng ở một số trung tâm thương mại lớn. Nó giải quyết được các vấn đề:
+Tôi thấy cách xây cửa dạng tường tường hoặc vách chữ Z này rất hay, nó được áp dụng ở một số trung tâm thương mại lớn. Nó giải quyết được các vấn đề:
 * Không chạm vào cửa, tránh tình trạng lây nhiễm chéo.
 * Vẫn đảm bảo được sự riêng tư từ bên ngoài.
 * Luồng người có thể ra vào liên tục mà không có thao tác mở/đóng.
 * Đặc biệt không tốn chi phí bảo trì vì không có bản lề, không có tay nắm.
+
+Trường hợp không gian hẹp không thể xây cửa dạng tường tường hoặc vách chữ Z, thì tôi sẽ sử dụng của mở 1 chiều mở từ trong ra ngoài, và có tay nắm cửa kéo mở cửa từ phía ngoài.
+* Để mở cửa ra, tôi có thể dùng hông/mông để đẩy cửa ra, nên không cần dùng tay.
+* Đảm bảo được sự riêng tư.
 
 ---
 
